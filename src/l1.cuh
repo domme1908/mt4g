@@ -8,6 +8,7 @@
 # include "cuda.h"
 # include "eval.h"
 # include "GPU_resources.cuh"
+#include <chrono>
 
 __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int * duration, unsigned int *index, bool* isDisturbed);
 
@@ -25,6 +26,8 @@ CacheSizeResult measure_L1() {
 #ifdef IsDebug
     fprintf(out, "Got Boundaries: %d...%d\n", bounds[0], bounds[1]);
 #endif //IsDebug
+    auto total_start_time = std::chrono::high_resolution_clock::now();
+
     printf("Got Boundaries: %d...%d\n", bounds[0], bounds[1]);
 
     int cp = -1;
@@ -51,6 +54,9 @@ CacheSizeResult measure_L1() {
     result.CacheSize = (cacheSizeInInt << 2); // * 4);
     result.realCP = cp > 0;
     result.maxSizeBenchmarked = end << 2; // * 4;
+    auto total_end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = total_end_time - total_start_time;
+    printf("Kernel execution time: %.3f ms\n", elapsed.count());
     return result;
 }
 
@@ -135,7 +141,6 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int* po
             break;
         }
         cudaDeviceSynchronize();
-
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
@@ -234,14 +239,14 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
         s_index[k] = 0;
         s_tvalue[k] = 0;
     }
-
-    // First round
+    int tid = threadIdx.x;
     unsigned int* ptr;
-	for (int k = 0; k < array_length; k++) {
-        ptr = my_array + j;
-        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
-	    //j = my_array[j];
-	}
+    // First round
+    for (int k = tid; k < array_length; k += blockDim.x) {
+        unsigned int* ptr = my_array + k;
+        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(ptr[0]) : "l"(ptr) : "memory");
+    }
+    __syncthreads();
 
     // Second round
     asm volatile(" .reg .u64 smem_ptr64;\n\t"
@@ -269,6 +274,7 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
         duration[k] = s_tvalue[k];
     }
     *isDisturbed = dist;
+
 }
 
 #endif //CUDATEST_L1
