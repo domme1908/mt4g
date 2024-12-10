@@ -241,8 +241,9 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
     }
     int tid = threadIdx.x;
     unsigned int* ptr;
+    const int step_size = 1;
     // First round
-    for (int k = tid; k < array_length; k += blockDim.x) {
+    for (int k = tid; k < array_length; k += blockDim.x * step_size) {
         unsigned int* ptr = my_array + k;
         asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(ptr[0]) : "l"(ptr) : "memory");
     }
@@ -251,7 +252,7 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
     // Second round
     asm volatile(" .reg .u64 smem_ptr64;\n\t"
                  " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_index));
-    for (int k = 0; k < MEASURE_SIZE; k++) {
+    for (int k = 0; k < MEASURE_SIZE; k+= step_size) {
         ptr = my_array + j;
         //start_time = clock();
         asm volatile ("mov.u32 %0, %%clock;\n\t"
