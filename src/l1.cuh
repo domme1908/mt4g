@@ -3,7 +3,7 @@
 #define CUDATEST_L1
 
 # include <cstdio>
-
+#include <chrono>
 # include "binarySearch.h"
 # include "cuda.h"
 # include "eval.h"
@@ -14,6 +14,7 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error);
 
 CacheSizeResult measure_L1() {
+    auto startTime = std::chrono::high_resolution_clock::now();
 // 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024
     int absoluteLowerBoundary = 1024;
     int absoluteUpperBoundary = 1024 << 10; // 1024 * 1024
@@ -51,6 +52,8 @@ CacheSizeResult measure_L1() {
     result.CacheSize = (cacheSizeInInt << 2); // * 4);
     result.realCP = cp > 0;
     result.maxSizeBenchmarked = end << 2; // * 4;
+    auto endTime = std::chrono::high_resolution_clock::now();
+    printf("measure_L1 time: %f ms\n", std::chrono::duration<double>(endTime - startTime).count() * 1000.0);
     return result;
 }
 
@@ -249,11 +252,17 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
     for (int k = 0; k < MEASURE_SIZE; k++) {
         ptr = my_array + j;
         //start_time = clock();
-        asm volatile ("mov.u32 %0, %%clock;\n\t"
-                      "ld.global.ca.u32 %1, [%3];\n\t"
-                      "st.shared.u32 [smem_ptr64], %1;"
-                      "mov.u32 %2, %%clock;\n\t"
-                      "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+        asm volatile (
+            // Save GPU Clock into start_time var
+            "mov.u32 %0, %%clock;\n\t"
+            // Load ptr into register
+            "ld.global.ca.u32 %1, [%3];\n\t"
+            // Write data to shared memory
+            "st.shared.u32 [smem_ptr64], %1;"
+            // Save GPU Clock into end_time var
+            "mov.u32 %2, %%clock;\n\t"
+            // Increment shared memory pointer by 4 bytes           - Calling variables
+            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
             //start_time = clock();
             //j = my_array[j];
             //s_index[k] = j;
