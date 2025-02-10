@@ -43,7 +43,7 @@ CacheSizeResult measure_L1()
     int begin = bounds[0] - widenBounds;
     int end = bounds[1] + widenBounds;
     int stride = 8;
-    int arrayIncrease = 1;
+    int arrayIncrease = 4;
 
     while (cp == -1 && begin >= absoluteLowerBoundary / sizeof(int) - widenBounds && end <= absoluteUpperBoundary / sizeof(int) + widenBounds)
     {
