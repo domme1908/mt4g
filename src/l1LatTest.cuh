@@ -6,6 +6,7 @@
 
 # include "cuda.h"
 # include "eval.h"
+# include "utils.h"
 # include "GPU_resources.cuh"
 
 __global__ void l1_lat_test (unsigned int * my_array, int array_length, unsigned int * duration, unsigned int* index, bool* isDisturbed);
@@ -28,7 +29,7 @@ void measure_L1_LatTest() {
         exit(1);
     }
 
-    int stride = 1;
+    int stride = 8;
     int arrSize = 200;
     int error = 0;
     bool dist = true;
@@ -51,7 +52,7 @@ void measure_L1_LatTest() {
 bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int *error)  {
     cudaError_t error_id;
 
-    unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr, *d_a = nullptr, *d_index = nullptr, *duration = nullptr;
+    unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr, *d_a = nullptr, *d_index = nullptr, *duration = nullptr,*lines = nullptr;
     bool *disturb = nullptr, *d_disturb = nullptr;
 
     do {
@@ -113,11 +114,30 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
             break;
         }
 
-        // Initialize p-chase array
-        for (int i = 0; i < N; i++) {
-            //original:
-            h_a[i] = (i + stride) % N;
+        int line_count = N / stride;
+
+        lines = (unsigned int *)malloc(sizeof(unsigned int) * line_count);
+        if (!lines)
+        {
+            printf("Error: malloc for lines failed.\n");
+            free(h_a);
+            return 1;
         }
+
+        for (int i = 0; i < line_count; i++)
+        {
+            lines[i] = i;
+        }
+
+        fisher_yates_shuffle(lines, line_count);
+        for (int i = 0; i < line_count - 1; i++)
+        {
+            int current_line = lines[i];
+            int next_line = lines[i + 1];
+            h_a[current_line * stride] = next_line * stride;
+        }
+        h_a[lines[line_count - 1] * stride] = lines[0] * stride;
+
 
         // Copy array from GPU to Host
         error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * N, cudaMemcpyHostToDevice);

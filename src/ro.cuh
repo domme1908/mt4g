@@ -8,6 +8,7 @@
 # include "binarySearch.h"
 # include "cuda.h"
 # include "eval.h"
+# include "utils.h"
 # include "GPU_resources.cuh"
 
 
@@ -30,7 +31,7 @@ CacheSizeResult measure_ReadOnly() {
     int cp = -1;
     int begin = bounds[0] - widenBounds;
     int end = bounds[1] + widenBounds;
-    int stride = 1;
+    int stride = 8;
     int arrayIncrease = 1;
 
     while (cp == -1 && begin >= absoluteLowerBoundary / sizeof(int) - widenBounds && end <= absoluteUpperBoundary / sizeof(int) + widenBounds) {
@@ -59,7 +60,7 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
     cudaDeviceReset();
     cudaError_t error_id;
 
-    unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,
+    unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,*lines = nullptr,
     *d_a = nullptr, *duration = nullptr, *d_index = nullptr;
     bool *disturb = nullptr, *d_disturb = nullptr;
 
@@ -123,10 +124,30 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
         }
 
         // Initialize p-chase array
-        for (int i = 0; i < N; i++) {
-            //original:
-            h_a[i] = (i + stride) % N;
+        int line_count = N / stride;
+
+        lines = (unsigned int *)malloc(sizeof(unsigned int) * line_count);
+        if (!lines)
+        {
+            printf("Error: malloc for lines failed.\n");
+            free(h_a);
+            return 1;
         }
+
+        for (int i = 0; i < line_count; i++)
+        {
+            lines[i] = i;
+        }
+
+        fisher_yates_shuffle(lines, line_count);
+        for (int i = 0; i < line_count - 1; i++)
+        {
+            int current_line = lines[i];
+            int next_line = lines[i + 1];
+            h_a[current_line * stride] = next_line * stride;
+        }
+        h_a[lines[line_count - 1] * stride] = lines[0] * stride;
+
 
         // Copy array from Host to GPU
         error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * N, cudaMemcpyHostToDevice);

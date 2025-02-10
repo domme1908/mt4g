@@ -25,6 +25,7 @@
         "barrier": "cpp",
         "queue": "cpp",
         "random": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "ios": "cpp"
     }
 }

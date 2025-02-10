@@ -8,21 +8,37 @@
 #include "cuda.h"
 #include "eval.h"
 #include "GPU_resources.cuh"
+# include "utils.h"
 
 __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed);
 
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error);
-void fisher_yates_shuffle(unsigned int *array, int n)
-{
-    for (int i = n - 1; i > 0; i--)
-    {
-        int j = rand() % (i + 1);
-        unsigned int temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
-    }
-}
+char unitsByteLocal[4][4] = {"B", "KiB", "MiB", "GiB"};
 
+const char* formatSize(double* val, size_t original) {
+    int unitIndex = 0;
+
+    if (original > 1024 * 1024 * 1024) {
+        original = original >> 10;
+        ++unitIndex;
+    }
+
+    double result = (double) original;
+
+    if (result > 1000.) {
+        result = result / 1024.;
+        ++unitIndex;
+    }
+
+    if (result > 1000.) {
+        result = result / 1024.;
+        ++unitIndex;
+    }
+
+    const char* unit = unitsByteLocal[unitIndex];
+    *val = result;
+    return unit;
+}
 CacheSizeResult measure_L1()
 {
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -43,7 +59,7 @@ CacheSizeResult measure_L1()
     int begin = bounds[0] - widenBounds;
     int end = bounds[1] + widenBounds;
     int stride = 8;
-    int arrayIncrease = 4;
+    int arrayIncrease = 8;
 
     while (cp == -1 && begin >= absoluteLowerBoundary / sizeof(int) - widenBounds && end <= absoluteUpperBoundary / sizeof(int) + widenBounds)
     {
@@ -67,7 +83,12 @@ CacheSizeResult measure_L1()
     result.maxSizeBenchmarked = end << 2; // * 4;
     auto endTime = std::chrono::high_resolution_clock::now();
     printf("measure_L1 time: %f ms\n", std::chrono::duration<double>(endTime - startTime).count() * 1000.0);
-    printf("CacheSize: %lld\n", (long long)result.CacheSize);
+    double size;
+    size_t original = result.CacheSize;
+    const char* unit = formatSize(&size, original);
+    printf("Size %f%s\n", size, unit);
+    printf("Stride was %d\n", stride);
+    printf("ArrayIncrease was %d\n", arrayIncrease);
     return result;
 }
 

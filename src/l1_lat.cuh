@@ -7,6 +7,7 @@
 # include "cuda.h"
 # include "eval.h"
 # include "GPU_resources.cuh"
+# include "utils.h"
 
 __global__ void l1_lat (unsigned int * my_array, int array_length, unsigned int * time);
 __global__ void l1_lat_globaltimer (unsigned int * my_array, int array_length, unsigned int * time);
@@ -14,7 +15,7 @@ __global__ void l1_lat_globaltimer (unsigned int * my_array, int array_length, u
 LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error);
 
 LatencyTuple measure_L1_Lat() {
-    int stride = 1;
+    int stride = 8;
     int arrSize = 200;
     int error = 0;
     LatencyTuple lat = launchL1LatKernelBenchmark(arrSize, stride, &error);
@@ -28,7 +29,7 @@ LatencyTuple measure_L1_Lat() {
 LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
     LatencyTuple result;
     cudaError_t error_id;
-    unsigned int *h_a = nullptr, *h_time = nullptr, *d_a = nullptr, *d_time = nullptr;
+    unsigned int *h_a = nullptr, *h_time = nullptr, *d_a = nullptr, *d_time = nullptr, *lines = nullptr;
 
     do {
         // Allocate Memory on Host
@@ -60,12 +61,31 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
             *error = 2;
             break;
         }
+        int line_count = N / stride;
+
+        lines = (unsigned int *)malloc(sizeof(unsigned int) * line_count);
+        if (!lines)
+        {
+            printf("Error: malloc for lines failed.\n");
+            free(h_a);
+            break;
+        }
+
 
         // Initialize p-chase array
-        for (int i = 0; i < N; i++) {
-            //original:
-            h_a[i] = (i + stride) % N;
+        for (int i = 0; i < line_count; i++)
+        {
+            lines[i] = i;
         }
+
+        fisher_yates_shuffle(lines, line_count);
+        for (int i = 0; i < line_count - 1; i++)
+        {
+            int current_line = lines[i];
+            int next_line = lines[i + 1];
+            h_a[current_line * stride] = next_line * stride;
+        }
+        h_a[lines[line_count - 1] * stride] = lines[0] * stride;
 
         // Copy array from Host to GPU
         error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * N, cudaMemcpyHostToDevice);

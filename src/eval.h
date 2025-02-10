@@ -529,7 +529,6 @@ std::vector<unsigned int> Opt(double *d, int size)
  */
 int detectChangePoint(unsigned int **y, int size, int innerSize)
 {
-    printf("Starting change point");
 #ifdef IsDebug
     fprintf(out, "\n\nStarting change point detection...\n");
     fprintf(out, "Building Min vector...");
