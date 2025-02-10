@@ -232,7 +232,7 @@ void getBoundaries (bool (*benchmark)(int, int, double*, unsigned int*, unsigned
             int count = 5;
             while(dist && count > 0) {
                 int error = 0;
-                dist = (*benchmark)(size, 1, &logAvg[i], nullptr, nullptr, &error);
+                dist = (*benchmark)(size, 8, &logAvg[i], nullptr, nullptr, &error);
                 if (error != 0) {
                     free(logAvg);
                     printErrorCodeInformation(error);

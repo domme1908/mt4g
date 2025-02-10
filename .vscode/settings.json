@@ -19,6 +19,12 @@
         "iterator": "cpp",
         "map": "cpp",
         "set": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "bitset": "cpp",
+        "utility": "cpp",
+        "barrier": "cpp",
+        "queue": "cpp",
+        "random": "cpp",
+        "stack": "cpp"
     }
 }

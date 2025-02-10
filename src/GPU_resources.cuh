@@ -87,15 +87,13 @@ int wrapBenchmarkLaunch(bool (*launcher)(int, int, double*, unsigned int*, unsig
         printErrorCodeInformation(1);
         exit(1);
     }
-
     double progress = 0.0;
     printf("====================================================================================================\n");
     for (int N = begin; N <= end; N+=arrayIncrease) {
+        printf("N is: %d. Begin: %d, End:%d\n", N, begin,end);
         bool dist = true;
         int count = 5;
         int index = (N - begin) / arrayIncrease;
-        printf("Array size is: %d \n",N);
-        printf("Index is: %d\n", index);
         while(dist && count > 0) {
             if ((float)(N - begin) / (float)(end-begin) > progress) {
                 progress = progress + 0.01;
@@ -112,7 +110,6 @@ int wrapBenchmarkLaunch(bool (*launcher)(int, int, double*, unsigned int*, unsig
             --count;
         }
     }
-    printf("Leaving for loop");
 
     printAvgFlow(avgFlow, sizeFlow, begin, stride, type);
     printMissesFlow(potMissesFlow, sizeFlow, begin, stride);
