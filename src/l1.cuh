@@ -32,7 +32,7 @@ CacheSizeResult measure_L1() {
     int begin = bounds[0] - widenBounds;
     int end = bounds[1] + widenBounds;
     int stride = 1;
-    int arrayIncrease = 1;
+    int arrayIncrease = 2;
 
     while (cp == -1 && begin >= absoluteLowerBoundary / sizeof(int) - widenBounds && end <= absoluteUpperBoundary / sizeof(int) + widenBounds) {
         cp = wrapBenchmarkLaunch(launchL1KernelBenchmark, begin, end, stride, arrayIncrease, "L1");
@@ -54,6 +54,7 @@ CacheSizeResult measure_L1() {
     result.maxSizeBenchmarked = end << 2; // * 4;
     auto endTime = std::chrono::high_resolution_clock::now();
     printf("measure_L1 time: %f ms\n", std::chrono::duration<double>(endTime - startTime).count() * 1000.0);
+    printf("CacheSize: %lld\n", (long long) result.CacheSize);
     return result;
 }
 
@@ -61,7 +62,6 @@ CacheSizeResult measure_L1() {
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
     //cudaDeviceReset();
     cudaError_t error_id;
-
     unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,
     *d_a = nullptr, *duration = nullptr, *d_index = nullptr;
     bool *disturb = nullptr, *d_disturb = nullptr;
@@ -140,6 +140,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int* po
         cudaDeviceSynchronize();
 
         // Launch Kernel function
+        // Single thread i think
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         l1_size <<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
@@ -247,8 +248,11 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
 	}
 
     // Second round
-    asm volatile(" .reg .u64 smem_ptr64;\n\t"
-                 " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_index));
+    asm volatile(
+        // Declare register
+        " .reg .u64 smem_ptr64;\n\t"
+        // Convert a c pointer into a shared memory address - I think
+        " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_index));
     for (int k = 0; k < MEASURE_SIZE; k++) {
         ptr = my_array + j;
         //start_time = clock();
@@ -261,11 +265,11 @@ __global__ void l1_size (unsigned int * my_array, int array_length, unsigned int
             "st.shared.u32 [smem_ptr64], %1;"
             // Save GPU Clock into end_time var
             "mov.u32 %2, %%clock;\n\t"
-            // Increment shared memory pointer by 4 bytes           - Calling variables
+            // Increment shared memory pointer by 4 bytes           - Calling variables      - Memory to avoid optimization
             "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
             //start_time = clock();
             //j = my_array[j];
-            //s_index[k] = j;
+            //s_index[k] = j; - I think this is code is only necessary to avoid optimization, but it is still used later...
             //end_time = clock();
             s_tvalue[k] = end_time-start_time;
     }

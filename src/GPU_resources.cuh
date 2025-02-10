@@ -74,6 +74,7 @@ free(potMissesFlow);                        \
  */
 int wrapBenchmarkLaunch(bool (*launcher)(int, int, double*, unsigned int*, unsigned int**, int*), int begin, int end, int stride, int arrayIncrease, const char* type) {
     int sizeFlow = 1 + (end-begin);
+    printf("SizeFlow is: %d\n", sizeFlow);
     double* avgFlow = (double*) malloc(sizeof(double) * sizeFlow);
     unsigned int *potMissesFlow = (unsigned int*) malloc(sizeof(unsigned int) * sizeFlow);
     unsigned int** time = (unsigned int**) malloc(sizeof(unsigned int*) * sizeFlow);
@@ -93,7 +94,8 @@ int wrapBenchmarkLaunch(bool (*launcher)(int, int, double*, unsigned int*, unsig
         bool dist = true;
         int count = 5;
         int index = (N - begin) / arrayIncrease;
-
+        printf("Array size is: %d \n",N);
+        printf("Index is: %d\n", index);
         while(dist && count > 0) {
             if ((float)(N - begin) / (float)(end-begin) > progress) {
                 progress = progress + 0.01;
@@ -110,6 +112,7 @@ int wrapBenchmarkLaunch(bool (*launcher)(int, int, double*, unsigned int*, unsig
             --count;
         }
     }
+    printf("Leaving for loop");
 
     printAvgFlow(avgFlow, sizeFlow, begin, stride, type);
     printMissesFlow(potMissesFlow, sizeFlow, begin, stride);
