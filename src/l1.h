@@ -1,4 +1,3 @@
-
 #ifndef CUDATEST_L1
 #define CUDATEST_L1
 
@@ -78,9 +77,9 @@ CacheSizeResult measure_L1()
 
     CacheSizeResult result;
     int cacheSizeInInt = (begin + cp * arrayIncrease);
-    result.CacheSize = (cacheSizeInInt << 2); // * 4);
+    result.CacheSize = (cacheSizeInInt << 2);
     result.realCP = cp > 0;
-    result.maxSizeBenchmarked = end << 2; // * 4;
+    result.maxSizeBenchmarked = end << 2;
     auto endTime = std::chrono::high_resolution_clock::now();
     printf("measure_L1 time: %f ms\n", std::chrono::duration<double>(endTime - startTime).count() * 1000.0);
     double size;
@@ -137,7 +136,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **)&d_a, sizeof(unsigned int) * (N));
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -145,7 +144,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
 
         error_id = hipMalloc((void **)&duration, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -153,7 +152,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
 
         error_id = hipMalloc((void **)&d_index, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -161,7 +160,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
 
         error_id = hipMalloc((void **)&d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -194,7 +193,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
@@ -206,12 +205,12 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         // Single thread i think
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
-        l1_size<<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
+        hipLaunchKernelGGL(l1_size, Dg, Db, 0, 0, d_a, N, duration, d_index, d_disturb);
 
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
@@ -221,7 +220,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_timeinfo, (void *)duration, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -229,7 +228,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
 
         error_id = hipMemcpy((void *)h_index, (void *)d_index, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -237,7 +236,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
 
         error_id = hipMemcpy((void *)disturb, (void *)d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L1.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -328,20 +327,44 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
     for (int k = 0; k < array_length; k++)
     {
         ptr = my_array + j;
+#ifdef IS_AMD
+        asm volatile("ld.global.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+#else
         asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+#endif
         // j = my_array[j];
     }
 
     // Second round
+#ifdef IS_AMD
+    asm volatile(
+        // Declare register
+        " // no-op for AMD pointer conversion\n\t"
+        ::"l"(s_index));
+#else
     asm volatile(
         // Declare register
         " .reg .u64 smem_ptr64;\n\t"
         // Convert a c pointer into a shared memory address - I think
-        " cvta.to.shared.u64 smem_ptr64, %0;\n\t" ::"l"(s_index));
+        " cvta.to.shared.u64 smem_ptr64, %0;\n\t"
+        ::"l"(s_index));
+#endif
     for (int k = 0; k < MEASURE_SIZE; k++)
     {
         ptr = my_array + j;
-        // start_time = clock();
+#ifdef IS_AMD
+        asm volatile(
+            // Save GPU Clock into start_time var
+            "s_memtime s2:s3;\n\t"
+            // Load ptr into register
+            "ld.global.u32 %1, [%3];\n\t"
+            // Write data to shared memory
+            "st.shared.u32 [smem_ptr64], %1;"
+            // Save GPU Clock into end_time var
+            "s_memtime s4:s5;\n\t"
+            // Increment shared memory pointer by 4 bytes
+            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+#else
         asm volatile(
             // Save GPU Clock into start_time var
             "mov.u32 %0, %%clock;\n\t"
@@ -351,12 +374,9 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
             "st.shared.u32 [smem_ptr64], %1;"
             // Save GPU Clock into end_time var
             "mov.u32 %2, %%clock;\n\t"
-            // Increment shared memory pointer by 4 bytes           - Calling variables      - Memory to avoid optimization
+            // Increment shared memory pointer by 4 bytes
             "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
-        // start_time = clock();
-        // j = my_array[j];
-        // s_index[k] = j; - I think this is code is only necessary to avoid optimization, but it is still used later...
-        // end_time = clock();
+#endif
         s_tvalue[k] = end_time - start_time;
     }
 
