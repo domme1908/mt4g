@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <chrono>
 #include "binarySearch.h"
-#include "cuda.h"
+#include <hip/hip_runtime.h>
 #include "eval.h"
 #include "GPU_resources.cuh"
 # include "utils.h"
@@ -94,7 +94,7 @@ CacheSizeResult measure_L1()
 
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error)
 {
-    // cudaDeviceReset();
+    // hipDeviceReset();
     hipError_t error_id;
     unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,
                  *d_a = nullptr, *duration = nullptr, *d_index = nullptr, *lines = nullptr;
@@ -139,7 +139,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMalloc((void **)&d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -147,7 +147,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMalloc((void **)&duration, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMalloc duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -155,7 +155,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMalloc((void **)&d_index, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -163,7 +163,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMalloc((void **)&d_disturb, sizeof(bool));
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMalloc disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -196,11 +196,11 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function
         // Single thread i think
@@ -208,22 +208,22 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         dim3 Dg = dim3(1, 1, 1);
         l1_size<<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: Kernel launch/execution Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_timeinfo, (void *)duration, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -231,7 +231,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMemcpy((void *)h_index, (void *)d_index, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -239,12 +239,12 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         error_id = hipMemcpy((void *)disturb, (void *)d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L1.CUH]: hipMemcpy disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         if (!*disturb)
             createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "L1_");
@@ -306,7 +306,7 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
     return ret;
 }
 

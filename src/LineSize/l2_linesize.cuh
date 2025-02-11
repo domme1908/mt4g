@@ -53,14 +53,14 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         // Allocate Memory on GPU Memory
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_missIndex, sizeof(int) * LINE_MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: hipMalloc d_missIndex Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMalloc d_missIndex Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -74,7 +74,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         // Copy elements from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
@@ -82,39 +82,39 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         // Copy zeroes to GPU array
         error_id = hipMemcpy(d_missIndex, h_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         l2_lineSize <<<Dg, Db>>>(N, d_a, d_missIndex);
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_missIndex, (void *) d_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         //most frequent distance between spikes in latency is the cache line size (first element of each cahce line getting loaded)
         lineSize = getMostValueInArray(h_missIndex, LINE_MEASURE_SIZE) * sizeof(unsigned int);
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
     } while(false);
 
     // Free Memory on GPU
@@ -135,7 +135,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         free(h_missIndex);
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
 
     return lineSize;
 }

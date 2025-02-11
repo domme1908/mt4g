@@ -57,7 +57,7 @@ CacheSizeResult measure_ReadOnly() {
 
 
 bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
-    cudaDeviceReset();
+    hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,*lines = nullptr,
@@ -97,28 +97,28 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * N);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMalloc duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMalloc disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -152,51 +152,51 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         RO_size<<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: Kernel launch/execution Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[RO.CUH]: hipMemcpy disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[RO.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         if (!*disturb)
             createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "RO_");
@@ -238,7 +238,7 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
         }
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
     return ret;
 }
 

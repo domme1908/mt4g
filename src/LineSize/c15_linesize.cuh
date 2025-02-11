@@ -40,35 +40,35 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         // Allocation on GPU Memory
         error_id = hipMalloc((void **) &d_lineSize, sizeof(unsigned int));
         if (error_id != cudaSuccess) {
-            printf("[C15_LINESIZE.CUH]: hipMalloc d_lineSize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C15_LINESIZE.CUH]: hipMalloc d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         c15_linesize <<<Dg, Db>>>(d_lineSize);
-        cudaDeviceSynchronize();
-        error_id = cudaGetLastError();
+        hipDeviceSynchronize();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[C15_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C15_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
         /* copy results from GPU to CPU */
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         error_id = hipMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[C15_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C15_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         lineSize = h_lineSize[0];
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
     } while(false);
 
     if (d_lineSize != nullptr) {
@@ -79,7 +79,7 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         free(h_lineSize);
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
 
     return lineSize;
 }

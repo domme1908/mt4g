@@ -44,37 +44,37 @@ unsigned int launchC1LineSizeKernelBenchmark(int upperLimit, int* error) {
         // Allocation on GPU Memory
         error_id = hipMalloc((void **) &d_lineSize, sizeof(unsigned int));
         if (error_id != cudaSuccess) {
-            printf("[C1_LINESIZE.CUH]: hipMalloc d_lineSize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C1_LINESIZE.CUH]: hipMalloc d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         c1_linesize <<<Dg, Db>>>(upperLimit, d_lineSize);
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[C1_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C1_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[C1_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C1_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         lineSize = h_lineSize[0];
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
     } while(false);
 
     if (d_lineSize != nullptr) {
@@ -85,7 +85,7 @@ unsigned int launchC1LineSizeKernelBenchmark(int upperLimit, int* error) {
         free(h_lineSize);
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
 
     return lineSize;
 }

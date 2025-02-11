@@ -45,35 +45,35 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
         // Allocate memory on GPU
         error_id = hipMalloc((void **) &d_time, sizeof(unsigned int));
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_5_LAT_SEP.CUH]: hipMalloc d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_5_LAT_SEP.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch kernel function using clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         constL1_5_lat<<<Dg, Db>>>(d_time);
 
-        cudaDeviceSynchronize();
-        error_id = cudaGetLastError();
+        hipDeviceSynchronize();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_5_LAT_SEP.CUH]: Kernel launch/execution with clock Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_5_LAT_SEP.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_5_LAT_SEP.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_5_LAT_SEP.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
 
         unsigned int lat = h_time[0];
@@ -84,31 +84,31 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
 
         // Launch kernel function using globaltimer
         constL1_5_lat_globaltimer<<<Dg, Db>>>(d_time);
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_5_LAT_SEP.CUH]: Kernel launch/execution with globaltimer Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_5_LAT_SEP.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_5_LAT_SEP.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_5_LAT_SEP.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         lat = h_time[0];
 #ifdef IsDebug
         fprintf(c15Out, "Measured Const L1.5 avg latencyCycles is %d nanoseconds\n", lat);
 #endif //IsDebug
         result.latencyNano = lat;
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
     } while(false);
 
     // Free Memory on GPU
@@ -119,7 +119,7 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
     if (h_time != nullptr) {
         free(h_time);
     }
-    cudaDeviceReset();
+    hipDeviceReset();
 #ifdef IsDebug
     fclose(c15Out);
 #endif //IsDebug

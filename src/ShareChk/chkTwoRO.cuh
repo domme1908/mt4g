@@ -103,7 +103,7 @@ __global__ void chkTwoRO(unsigned int N, const unsigned int* __restrict__ arrayR
 }
 
 bool launchBenchmarkTwoRO(unsigned int N, double *avgOut1, double* avgOut2, unsigned int* potMissesOut1, unsigned int* potMissesOut2, unsigned int **time1, unsigned int **time2, int* error) {
-    cudaDeviceReset();
+    hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_indexReadOnly1 = nullptr, *h_indexReadOnly2 = nullptr, *h_timeinfoReadOnly1 = nullptr, *h_timeinfoReadOnly2 = nullptr, *h_aReadOnly = nullptr,
@@ -157,48 +157,48 @@ bool launchBenchmarkTwoRO(unsigned int N, double *avgOut1, double* avgOut2, unsi
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &durationRO1, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc durationRO1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc durationRO1 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &durationRO2, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc durationRO2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc durationRO2 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexRO1, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc d_indexRO1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc d_indexRO1 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexRO2, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc d_indexRO2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc d_indexRO2 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_aReadOnly1, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc d_aReadOnly1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc d_aReadOnly1 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
         error_id = hipMalloc((void **) &d_aReadOnly2, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMalloc d_aReadOnly2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMalloc d_aReadOnly2 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -211,37 +211,37 @@ bool launchBenchmarkTwoRO(unsigned int N, double *avgOut1, double* avgOut2, unsi
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_aReadOnly1, h_aReadOnly, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy d_aReadOnly1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy d_aReadOnly1 Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
         error_id = hipMemcpy(d_aReadOnly2, h_aReadOnly, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy d_aReadOnly2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy d_aReadOnly2 Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: cudaDeviceSynchronize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipDeviceSynchronize Error: %s\n", hipGetErrorString(error_id));
             *error = 99;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
         dim3 Dg = dim3(1, 1, 1);
         chkTwoRO<<<Dg, Db>>>(N, d_aReadOnly1, d_aReadOnly2, durationRO1, durationRO2, d_indexRO1, d_indexRO2, d_disturb);
 
-        cudaDeviceSynchronize();
-        error_id = cudaGetLastError();
+        hipDeviceSynchronize();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: Kernel launch/execution Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
@@ -249,35 +249,35 @@ bool launchBenchmarkTwoRO(unsigned int N, double *avgOut1, double* avgOut2, unsi
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfoReadOnly1, (void *) durationRO1, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy durationRO1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy durationRO1 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_timeinfoReadOnly2, (void *) durationRO2, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy durationRO2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy durationRO2 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_indexReadOnly1, (void *) d_indexRO1, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy d_indexRO1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy d_indexRO1 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_indexReadOnly2, (void *) d_indexRO2, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy d_indexRO2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy d_indexRO2 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKTWORO.CUH]: hipMemcpy disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKTWORO.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -350,7 +350,7 @@ bool launchBenchmarkTwoRO(unsigned int N, double *avgOut1, double* avgOut2, unsi
         }
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
     return ret;
 }
 

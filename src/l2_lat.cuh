@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-#include "cuda.h"
+#include <hip/hip_runtime.h>
 #include "eval.h"
 #include "utils.h"
 #include "GPU_resources.cuh"
@@ -57,7 +57,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         error_id = hipMalloc((void **)&d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -65,7 +65,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         error_id = hipMalloc((void **)&d_time, sizeof(unsigned int));
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: hipMalloc d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -99,37 +99,37 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function with clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         l2_lat<<<Dg, Db>>>(d_a, N, d_time);
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: Kernel launch/execution with clock Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         unsigned int lat = h_time[0];
 #ifdef IsDebug
@@ -137,31 +137,31 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
 #endif // IsDebug
         result.latencyCycles = lat;
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch Kernel function with globaltimer
         l2_lat_globaltimer<<<Dg, Db>>>(d_a, N, d_time);
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         lat = h_time[0];
 #ifdef IsDebug
@@ -192,7 +192,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         free(h_time);
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
     return result;
 }
 

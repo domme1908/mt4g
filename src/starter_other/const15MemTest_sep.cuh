@@ -279,63 +279,63 @@ bool launchConst15KernelBenchmark(double *avgOut, unsigned int* potMissesOut, un
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: hipMalloc duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: hipMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: hipMalloc d_disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: hipMalloc d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Launch kernel function using clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         const15_test <<<Dg, Db>>>(duration, d_index, d_disturb);
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
-        error_id = cudaGetLastError();
+        error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: Kernel launch/execution Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: hipMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: hipMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONST15MEMTEST_SEP.CUH]: hipMemcpy d_disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONST15MEMTEST_SEP.CUH]: hipMemcpy d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // In Debug Mode the correct cache usage can be checked in this file (no other latencies)
         createOutputFile(constArrSize, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "Const15_");
@@ -373,7 +373,7 @@ bool launchConst15KernelBenchmark(double *avgOut, unsigned int* potMissesOut, un
         }
     }
 
-    cudaDeviceReset();
+    hipDeviceReset();
     return ret;
 }
 
