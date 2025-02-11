@@ -26,7 +26,7 @@ unsigned int measure_C15_LineSize() {
 
 unsigned int launchC15LineSizeKernelBenchmark(int* error) {
     unsigned int lineSize = 0;
-    cudaError_t error_id;
+    hipError_t error_id;
     unsigned int *h_lineSize = nullptr, *d_lineSize = nullptr;
 
     do {
@@ -38,9 +38,9 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
             break;
         }
         // Allocation on GPU Memory
-        error_id = cudaMalloc((void **) &d_lineSize, sizeof(unsigned int));
+        error_id = hipMalloc((void **) &d_lineSize, sizeof(unsigned int));
         if (error_id != cudaSuccess) {
-            printf("[C15_LINESIZE.CUH]: cudaMalloc d_lineSize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C15_LINESIZE.CUH]: hipMalloc d_lineSize Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -59,9 +59,9 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         }
         /* copy results from GPU to CPU */
         cudaDeviceSynchronize();
-        error_id = cudaMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[C15_LINESIZE.CUH]: cudaMemcpy d_lineSize Error: %s\n", cudaGetErrorString(error_id));
+            printf("[C15_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -72,7 +72,7 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
     } while(false);
 
     if (d_lineSize != nullptr) {
-        cudaFree(d_lineSize);
+        hipFree(d_lineSize);
     }
 
     if (h_lineSize != nullptr) {

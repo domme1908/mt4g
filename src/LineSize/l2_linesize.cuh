@@ -30,7 +30,7 @@ unsigned int measure_L2_LineSize_Alt(unsigned int l2SizeBytes) {
 
 unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int* error) {
     unsigned int lineSize = 0;
-    cudaError_t error_id;
+    hipError_t error_id;
     unsigned int *h_a = nullptr, *h_missIndex = nullptr,
     *d_a = nullptr, *d_missIndex = nullptr;
 
@@ -51,16 +51,16 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         }
 
         // Allocate Memory on GPU Memory
-        error_id = cudaMalloc((void **) &d_a, sizeof(unsigned int) * (N));
+        error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: cudaMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_missIndex, sizeof(int) * LINE_MEASURE_SIZE);
+        error_id = hipMalloc((void **) &d_missIndex, sizeof(int) * LINE_MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: cudaMalloc d_missIndex Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMalloc d_missIndex Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -72,17 +72,17 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         }
 
         // Copy elements from Host to GPU
-        error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * N, cudaMemcpyHostToDevice);
+        error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: cudaMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 3;
             break;
         }
 
         // Copy zeroes to GPU array
-        error_id = cudaMemcpy(d_missIndex, h_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, cudaMemcpyHostToDevice);
+        error_id = hipMemcpy(d_missIndex, h_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: cudaMemcpy d_missIndex Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", cudaGetErrorString(error_id));
             *error = 3;
             break;
         }
@@ -104,9 +104,9 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_missIndex, (void *) d_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_missIndex, (void *) d_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L2_LINESIZE.CUH]: cudaMemcpy d_missIndex Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -119,11 +119,11 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
 
     // Free Memory on GPU
     if (d_a != nullptr) {
-        cudaFree(d_a);
+        hipFree(d_a);
     }
 
     if (d_missIndex != nullptr) {
-        cudaFree(d_missIndex);
+        hipFree(d_missIndex);
     }
 
     // Free Memory on Host

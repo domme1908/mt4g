@@ -145,12 +145,12 @@ int launchL2SegmentSizeBenchmark(int lowerBound, int upperBound, unsigned long l
     }
 
     // Allocate device memory
-    cudaMalloc((void**)&d_a, sizeof(unsigned int) * upperBound);
-    cudaMalloc((void**)&d_last, sizeof(unsigned int));
-    cudaMalloc((void**)&d_time, sizeof(unsigned long long) * num_experiments);
+    hipMalloc((void**)&d_a, sizeof(unsigned int) * upperBound);
+    hipMalloc((void**)&d_last, sizeof(unsigned int));
+    hipMalloc((void**)&d_time, sizeof(unsigned long long) * num_experiments);
     // Transfer data from host to device memory
-    cudaMemcpy(d_a, h_a, sizeof(unsigned int) * upperBound, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_time, time, sizeof(unsigned long long) * num_experiments, cudaMemcpyHostToDevice);
+    hipMemcpy(d_a, h_a, sizeof(unsigned int) * upperBound, hipMemcpyHostToDevice);
+    hipMemcpy(d_time, time, sizeof(unsigned long long) * num_experiments, hipMemcpyHostToDevice);
 
     for(int i = 0; i < num_experiments; i++)
     {
@@ -158,7 +158,7 @@ int launchL2SegmentSizeBenchmark(int lowerBound, int upperBound, unsigned long l
         l2_segment_size<<<1,stride>>>(d_a, num_elems, &(d_time[i]), d_last);
     }
     // Transfer data back to host memory
-    cudaMemcpy(time, d_time, sizeof(unsigned long long) * num_experiments, cudaMemcpyDeviceToHost);
+    hipMemcpy(time, d_time, sizeof(unsigned long long) * num_experiments, hipMemcpyDeviceToHost);
     
     // for(int i = 0; i< num_experiments; i++)
     // {
@@ -166,9 +166,9 @@ int launchL2SegmentSizeBenchmark(int lowerBound, int upperBound, unsigned long l
     // }
 
     // Deallocate device memory
-    cudaFree(d_a);
-    cudaFree(d_last);
-    cudaFree(d_time);
+    hipFree(d_a);
+    hipFree(d_last);
+    hipFree(d_time);
 
     // Deallocate host memory
     free(h_a);

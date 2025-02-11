@@ -52,7 +52,7 @@ CacheResults measure_Shared() {
 
 
 bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
-    cudaError_t error_id;
+    hipError_t error_id;
 
     unsigned int* h_index = nullptr, *h_timeinfo = nullptr, *duration = nullptr, *d_index = nullptr;
     bool* disturb = nullptr, *d_disturb = nullptr;
@@ -81,23 +81,23 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
         }
 
         // Allocate Memory on GPU
-        error_id = cudaMalloc((void **) &duration, sizeof(unsigned int) * LESS_SIZE);
+        error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[SHAREDMEMTEST.CUH]: cudaMalloc duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[SHAREDMEMTEST.CUH]: hipMalloc duration Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_index, sizeof(unsigned int) * LESS_SIZE);
+        error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[SHAREDMEMTEST.CUH]: cudaMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[SHAREDMEMTEST.CUH]: hipMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_disturb, sizeof(bool));
+        error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[SHAREDMEMTEST.CUH]: cudaMalloc d_disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[SHAREDMEMTEST.CUH]: hipMalloc d_disturb Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -120,23 +120,23 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * LESS_SIZE,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[SHAREDMEMTEST.CUH]: cudaMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[SHAREDMEMTEST.CUH]: hipMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * LESS_SIZE,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[SHAREDMEMTEST.CUH]: cudaMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[SHAREDMEMTEST.CUH]: hipMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[SHAREDMEMTEST.CUH]: cudaMemcpy d_disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[SHAREDMEMTEST.CUH]: hipMemcpy d_disturb Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -147,15 +147,15 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
 
     // Free Memory on GPU
     if (d_index != nullptr) {
-        cudaFree(d_index);
+        hipFree(d_index);
     }
 
     if (duration != nullptr) {
-        cudaFree(duration);
+        hipFree(duration);
     }
 
     if (d_disturb != nullptr) {
-        cudaFree(d_disturb);
+        hipFree(d_disturb);
     }
 
     // Free Memory on Host

@@ -120,7 +120,7 @@ bool launchConstBenchmarkReferenceValue(int N, double *avgOut, unsigned int* pot
 bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, double *avgOutConst, double* avgOutData, unsigned int* potMissesOutConst,
                                       unsigned int* potMissesOutData, unsigned int **timeConst, unsigned int **timeData, int* error) {
     cudaDeviceReset();
-    cudaError_t error_id;
+    hipError_t error_id;
 
     unsigned int *h_indexConst = nullptr, *h_indexData = nullptr, *h_timeinfoConst = nullptr, *h_timeinfoData = nullptr, *h_a = nullptr,
     *durationConst = nullptr, *durationData = nullptr, *d_indexConst = nullptr, *d_indexData = nullptr, *d_a = nullptr;
@@ -171,44 +171,44 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
         }
 
         // Allocate Memory on GPU
-        error_id = cudaMalloc((void **) &durationConst, sizeof(unsigned int) * LESS_SIZE);
+        error_id = hipMalloc((void **) &durationConst, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMalloc durationConst Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc durationConst Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &durationData, sizeof(unsigned int) * LESS_SIZE);
+        error_id = hipMalloc((void **) &durationData, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMalloc durationData Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc durationData Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_indexConst, sizeof(unsigned int) * LESS_SIZE);
+        error_id = hipMalloc((void **) &d_indexConst, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMalloc d_indexConst Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_indexConst Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_indexData, sizeof(unsigned int) * LESS_SIZE);
+        error_id = hipMalloc((void **) &d_indexData, sizeof(unsigned int) * LESS_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMalloc d_indexData Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_indexData Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_disturb, sizeof(bool));
+        error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMalloc disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc disturb Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_a, sizeof(unsigned int) * (DataN));
+        error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (DataN));
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -219,9 +219,9 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
         }
 
         // Copy array from Host to GPU
-        error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * DataN, cudaMemcpyHostToDevice);
+        error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * DataN, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 3;
             break;
         }
@@ -241,41 +241,41 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
         }
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_timeinfoConst, (void *) durationConst, sizeof(unsigned int) * LESS_SIZE,
-                              cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_timeinfoConst, (void *) durationConst, sizeof(unsigned int) * LESS_SIZE,
+                              hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMemcpy durationConst Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy durationConst Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) h_timeinfoData, (void *) durationData, sizeof(unsigned int) * LESS_SIZE,
-                              cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_timeinfoData, (void *) durationData, sizeof(unsigned int) * LESS_SIZE,
+                              hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMemcpy durationData Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy durationData Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) h_indexConst, (void *) d_indexConst, sizeof(unsigned int) * LESS_SIZE,
-                              cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_indexConst, (void *) d_indexConst, sizeof(unsigned int) * LESS_SIZE,
+                              hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMemcpy d_indexConst Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_indexConst Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) h_indexData, (void *) d_indexData, sizeof(unsigned int) * LESS_SIZE,
-                              cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_indexData, (void *) d_indexData, sizeof(unsigned int) * LESS_SIZE,
+                              hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMemcpy d_indexData Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_indexData Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CHKCONSTSHAREL1DATA.CUH]: cudaMemcpy disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy disturb Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -292,23 +292,23 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
     // Free Memory on GPU
     if (d_indexConst != nullptr) {
-        cudaFree(d_indexConst);
+        hipFree(d_indexConst);
     }
 
     if (d_indexData != nullptr) {
-        cudaFree(d_indexData);
+        hipFree(d_indexData);
     }
 
     if (durationConst != nullptr) {
-        cudaFree(durationConst);
+        hipFree(durationConst);
     }
 
     if (durationData != nullptr) {
-        cudaFree(durationData);
+        hipFree(durationData);
     }
 
     if (d_disturb != nullptr) {
-        cudaFree(d_disturb);
+        hipFree(d_disturb);
     }
 
     // Free Memory on Host

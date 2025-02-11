@@ -30,7 +30,7 @@ LatencyTuple measure_L2_Lat()
 LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
 {
     LatencyTuple result;
-    cudaError_t error_id;
+    hipError_t error_id;
 
     unsigned int *h_a = nullptr, *h_time = nullptr, *d_a = nullptr, *d_time = nullptr, *lines = nullptr;
 
@@ -54,18 +54,18 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         }
 
         // Allocate Memory on GPU
-        error_id = cudaMalloc((void **)&d_a, sizeof(unsigned int) * (N));
+        error_id = hipMalloc((void **)&d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: cudaMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **)&d_time, sizeof(unsigned int));
+        error_id = hipMalloc((void **)&d_time, sizeof(unsigned int));
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: cudaMalloc d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMalloc d_time Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -96,10 +96,10 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         h_a[lines[line_count - 1] * stride] = lines[0] * stride;
 
         // Copy array from Host to GPU
-        error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * N, cudaMemcpyHostToDevice);
+        error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: cudaMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 3;
             break;
         }
@@ -122,10 +122,10 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: cudaMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -154,10 +154,10 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess)
         {
-            printf("[L2_LAT.CUH]: cudaMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -173,12 +173,12 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
     // Free Memory on GPU
     if (d_a != nullptr)
     {
-        cudaFree(d_a);
+        hipFree(d_a);
     }
 
     if (d_time != nullptr)
     {
-        cudaFree(d_time);
+        hipFree(d_time);
     }
 
     // Free Memory on Host

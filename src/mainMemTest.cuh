@@ -50,7 +50,7 @@ CacheResults measure_Main(int l2SizeInBytes, int stride) {
 
 
 bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
-    cudaError_t error_id;
+    hipError_t error_id;
 
     unsigned int* h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,
     *d_a = nullptr, *d_index = nullptr, *duration = nullptr;
@@ -87,30 +87,30 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
         }
 
         // Allocate Memory on GPU
-        error_id = cudaMalloc((void **) &d_a, sizeof(unsigned int) * (N));
+        error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
+        error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMalloc duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc duration Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
+        error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc d_index Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_disturb, sizeof(bool));
+        error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMalloc d_disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc d_disturb Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -122,9 +122,9 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
         }
 
         // Copy array from Host to GPU
-        error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * N, cudaMemcpyHostToDevice);
+        error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMemcpy h_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy h_a Error: %s\n", cudaGetErrorString(error_id));
             *error = 3;
             break;
         }
@@ -147,23 +147,23 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy duration Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy d_index Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[MAINMEMTEST.CUH]: cudaMemcpy d_disturb Error: %s\n", cudaGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy d_disturb Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -174,19 +174,19 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
 
     // Free Memory on GPU
     if (d_a != nullptr) {
-        cudaFree(d_a);
+        hipFree(d_a);
     }
 
     if (d_index != nullptr) {
-        cudaFree(d_index);
+        hipFree(d_index);
     }
 
     if (duration != nullptr) {
-        cudaFree(duration);
+        hipFree(duration);
     }
 
     if (d_disturb != nullptr) {
-        cudaFree(d_disturb);
+        hipFree(d_disturb);
     }
 
     // Free Memory on Host

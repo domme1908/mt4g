@@ -47,7 +47,7 @@ LatencyTuple measure_ConstL1_Lat() {
 
 LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
     LatencyTuple result;
-    cudaError_t error_id;
+    hipError_t error_id;
 
     unsigned int *h_time = nullptr, *d_time = nullptr;
 
@@ -61,9 +61,9 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
         }
 
         // Allocate Memory on GPU
-        error_id = cudaMalloc((void **) &d_time, sizeof(unsigned int));
+        error_id = hipMalloc((void **) &d_time, sizeof(unsigned int));
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_LAT.CUH]: cudaMalloc d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_LAT.CUH]: hipMalloc d_time Error: %s\n", cudaGetErrorString(error_id));
             *error = 2;
             break;
         }
@@ -84,9 +84,9 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_LAT.CUH]: cudaMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_LAT.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -112,9 +112,9 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[CONSTL1_LAT.CUH]: cudaMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
+            printf("[CONSTL1_LAT.CUH]: hipMemcpy d_time Error: %s\n", cudaGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -129,7 +129,7 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
 
     // Free Memory on GPU
     if (d_time != nullptr) {
-        cudaFree(d_time);
+        hipFree(d_time);
     }
 
     // Free Memory on Host

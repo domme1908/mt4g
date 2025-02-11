@@ -130,37 +130,37 @@ bool measureL1_L2_difference(double tol) {
         }
 
         // Allocate Memory on GPU
-        cudaError_t error_id = cudaMalloc((void **) &d_a, sizeof(unsigned int) * diffSize);
+        hipError_t error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * diffSize);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMalloc d_a Error: %s\n", cudaGetErrorString(error_id));
             error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &durationL1, sizeof(unsigned int) * diffSize);
+        error_id = hipMalloc((void **) &durationL1, sizeof(unsigned int) * diffSize);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMalloc durationL1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMalloc durationL1 Error: %s\n", cudaGetErrorString(error_id));
             error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &durationL2, sizeof(unsigned int) * diffSize);
+        error_id = hipMalloc((void **) &durationL2, sizeof(unsigned int) * diffSize);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMalloc durationL2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMalloc durationL2 Error: %s\n", cudaGetErrorString(error_id));
             error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_indexL1, sizeof(unsigned int) * diffSize);
+        error_id = hipMalloc((void **) &d_indexL1, sizeof(unsigned int) * diffSize);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMalloc d_indexL1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMalloc d_indexL1 Error: %s\n", cudaGetErrorString(error_id));
             error = 2;
             break;
         }
 
-        error_id = cudaMalloc((void **) &d_indexL2, sizeof(unsigned int) * diffSize);
+        error_id = hipMalloc((void **) &d_indexL2, sizeof(unsigned int) * diffSize);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMalloc d_indexL2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMalloc d_indexL2 Error: %s\n", cudaGetErrorString(error_id));
             error = 2;
             break;
         }
@@ -171,9 +171,9 @@ bool measureL1_L2_difference(double tol) {
         }
 
         // Copy array from Host to GPU
-        error_id = cudaMemcpy(d_a, h_a, sizeof(unsigned int) * diffSize, cudaMemcpyHostToDevice);
+        error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * diffSize, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMemcpy d_a Error: %s\n", cudaGetErrorString(error_id));
             error = 3;
             break;
         }
@@ -203,28 +203,28 @@ bool measureL1_L2_difference(double tol) {
         cudaDeviceSynchronize();
 
         // Copy results from GPU to Host
-        error_id = cudaMemcpy((void *) h_timeinfoL1, (void *) durationL1, sizeof(unsigned int) * diffSize,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_timeinfoL1, (void *) durationL1, sizeof(unsigned int) * diffSize,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMemcpy durationL1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMemcpy durationL1 Error: %s\n", cudaGetErrorString(error_id));
             error = 6;
             break;
         }
-        error_id = cudaMemcpy((void *) h_indexL1, (void *) d_indexL1, sizeof(unsigned int) * diffSize,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_indexL1, (void *) d_indexL1, sizeof(unsigned int) * diffSize,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMemcpy d_indexL1 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMemcpy d_indexL1 Error: %s\n", cudaGetErrorString(error_id));
             error = 6;
             break;
         }
 
-        error_id = cudaMemcpy((void *) h_timeinfoL2, (void *) durationL2, sizeof(unsigned int) * diffSize,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_timeinfoL2, (void *) durationL2, sizeof(unsigned int) * diffSize,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMemcpy durationL2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMemcpy durationL2 Error: %s\n", cudaGetErrorString(error_id));
             error = 6;
             break;
         }
-        error_id = cudaMemcpy((void *) h_indexL2, (void *) d_indexL2, sizeof(unsigned int) * diffSize,cudaMemcpyDeviceToHost);
+        error_id = hipMemcpy((void *) h_indexL2, (void *) d_indexL2, sizeof(unsigned int) * diffSize,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1_L2_DIFF.CUH]: cudaMemcpy d_indexL2 Error: %s\n", cudaGetErrorString(error_id));
+            printf("[L1_L2_DIFF.CUH]: hipMemcpy d_indexL2 Error: %s\n", cudaGetErrorString(error_id));
             error = 6;
             break;
         }
@@ -247,23 +247,23 @@ bool measureL1_L2_difference(double tol) {
 
     // Free Memory on GPU
     if (d_a != nullptr) {
-        cudaFree(d_a);
+        hipFree(d_a);
     }
 
     if (d_indexL1 != nullptr) {
-        cudaFree(d_indexL1);
+        hipFree(d_indexL1);
     }
 
     if (d_indexL2 != nullptr) {
-        cudaFree(d_indexL2);
+        hipFree(d_indexL2);
     }
 
     if (durationL1 != nullptr) {
-        cudaFree(durationL1);
+        hipFree(durationL1);
     }
 
     if (durationL2 != nullptr) {
-        cudaFree(durationL2);
+        hipFree(durationL2);
     }
 
     // Free Memory on Host
