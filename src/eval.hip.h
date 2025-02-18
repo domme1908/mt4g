@@ -18,7 +18,7 @@
 #endif
 #include <experimental/filesystem>
 #include <iostream>
-#include "ErrorHandler.h"
+#include "ErrorHandler.hip.h"
 
 #ifdef IsDebug
 FILE *out;

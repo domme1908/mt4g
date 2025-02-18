@@ -354,27 +354,27 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
         ptr = my_array + j;
 #ifdef IS_AMD
         asm volatile(
-            // Save GPU Clock into start_time var
+            // save GPU Clock into start_time var
             "s_memtime s2:s3;\n\t"
-            // Load ptr into register
+            // load ptr into register
             "ld.global.u32 %1, [%3];\n\t"
-            // Write data to shared memory
+            // write data to shared memory
             "st.shared.u32 [smem_ptr64], %1;"
-            // Save GPU Clock into end_time var
+            // save GPU Clock into end_time var
             "s_memtime s4:s5;\n\t"
-            // Increment shared memory pointer by 4 bytes
+            // increment shared memory pointer by 4 bytes
             "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
 #else
         asm volatile(
-            // Save GPU Clock into start_time var
+            // save GPU Clock into start_time var
             "mov.u32 %0, %%clock;\n\t"
-            // Load ptr into register
+            // load ptr into register
             "ld.global.ca.u32 %1, [%3];\n\t"
-            // Write data to shared memory
+            // write data to shared memory
             "st.shared.u32 [smem_ptr64], %1;"
-            // Save GPU Clock into end_time var
+            // save GPU Clock into end_time var
             "mov.u32 %2, %%clock;\n\t"
-            // Increment shared memory pointer by 4 bytes
+            // increment shared memory pointer by 4 bytes
             "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
 #endif
         s_tvalue[k] = end_time - start_time;

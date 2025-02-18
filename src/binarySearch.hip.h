@@ -6,7 +6,7 @@
 #define CUDATEST_BINARYSEARCH_H
 
 # include "eval.hip.h"
-# include "ErrorHandler.h"
+# include "ErrorHandler.hip.h"
 
 
 #define FreeBinarySearchBoundariesResources()   \

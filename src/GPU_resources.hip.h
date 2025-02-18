@@ -5,8 +5,9 @@
 #ifndef CUDATEST_GPU_RESOURCES_CUH
 #define CUDATEST_GPU_RESOURCES_CUH
 
-#include "ErrorHandler.h"
+#include "ErrorHandler.hip.h"
 #include <map>
+#include <hip/hip_runtime.h>
 
 #define MEASURE_SIZE 2048
 #define LESS_SIZE 1024

@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.22)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+include_directories(/usr/include/x86_64-linux-gnu/c++/11)
+include_directories(/usr/include/c++/11 /usr/include/x86_64-linux-gnu/c++/11)
+include_directories(/home/ubuntu/gpu-top/mt4g/src/cuda-samples/Common)
+
 # src: https://github.com/GPUOpen-ProfessionalCompute-Libraries/rpp/blob/ab75f4d90bf8ebccd10dd4292983a6638807c4c1/utilities/rpp-unittests/HIP_NEW/CMakeLists.txt
 
 if(NOT "${HIP_PATH}")
@@ -39,8 +43,8 @@ set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
 if (HIP_FOUND)
 
     # Create the executable
-    add_executable(c15 starter_other/ConstMemory.hip.c)
-    add_executable(mt4g capture.hip.c )
+    add_executable(c15 starter_other/ConstMemory.hip.cpp)
+    add_executable(mt4g capture.hip.cpp )
 
     # Link with HIP
     target_include_directories(c15 PRIVATE ${ROCM_PATH}/hsa/include)
