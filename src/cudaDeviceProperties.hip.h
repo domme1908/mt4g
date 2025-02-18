@@ -8,7 +8,7 @@
 //TODO: compile switch
 #define USE_HELPER_CUDA_DEFINITION
 
-#include "eval.h"
+#include "eval.hip.h"
 #include <cuda.h>
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <cstring>

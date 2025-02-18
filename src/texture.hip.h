@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-#include "eval.h"
+#include "eval.hip.h"
 #include "utils.h"
 #include "GPU_resources.hip.h"
 #include "binarySearch.h"

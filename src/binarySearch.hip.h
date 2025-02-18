@@ -5,7 +5,7 @@
 #ifndef CUDATEST_BINARYSEARCH_H
 #define CUDATEST_BINARYSEARCH_H
 
-# include "eval.h"
+# include "eval.hip.h"
 # include "ErrorHandler.h"
 
 

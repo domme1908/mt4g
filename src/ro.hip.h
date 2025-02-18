@@ -7,7 +7,7 @@
 
 # include "binarySearch.h"
 # include "cuda.h"
-# include "eval.h"
+# include "eval.hip.h"
 # include "utils.h"
 # include "GPU_resources.hip.h"
 

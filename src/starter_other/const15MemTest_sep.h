@@ -5,7 +5,7 @@
 # include <cstdio>
 
 # include "cuda.h"
-# include "../eval.h"
+# include "../eval.hip.h"
 # include "../GPU_resources.hip.h"
 
 #define constArrSize 4000

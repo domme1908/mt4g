@@ -5,7 +5,7 @@
 # include <cstdio>
 
 # include "cuda.h"
-# include "eval.h"
+# include "eval.hip.h"
 # include "GPU_resources.hip.h"
 
 __global__ void main_lat (unsigned int * my_array, unsigned int * time);

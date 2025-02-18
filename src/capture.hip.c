@@ -4,7 +4,7 @@
 #ifndef CAPTURE
 #define CAPTURE
 
-# include "eval.h"
+# include "eval.hip.h"
 # include "cudaDeviceProperties.hip.h"
 # include "L1DataCache.hip.h"
 # include "ReadOnlyCache.hip.h"

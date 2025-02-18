@@ -5,7 +5,7 @@
 # include <cstdio>
 
 # include "cuda.h"
-# include "eval.h"
+# include "eval.hip.h"
 # include "GPU_resources.hip.h"
 
 static __device__ __constant__ unsigned int arrLat[200] = {1,2,3,4,5,6,7,8,9,10,

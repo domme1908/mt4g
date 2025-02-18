@@ -5,7 +5,7 @@
 # include <cstdio>
 
 # include "cuda.h"
-# include "../eval.h"
+# include "../eval.hip.h"
 # include "../GPU_resources.hip.h"
 
 __global__ void constL1_5_lat(unsigned int * time);
