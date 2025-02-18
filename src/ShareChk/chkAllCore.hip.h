@@ -174,7 +174,6 @@ unsigned int corePts(unsigned int CacheSizeInInt, double avgFlowRef, unsigned in
     if (*error != 0) {
         free(distances);
         return 0;
-        +
     }
     distances[2] = wrapperLaunchTwoCore(CacheSizeInInt, numTestedCores, 3, avgFlowRef, cacheType, error, benchmark);
     if (*error != 0) {

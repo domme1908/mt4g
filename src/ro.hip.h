@@ -5,7 +5,7 @@
 # include <cstdio>
 # include <cstdint>
 
-# include "binarySearch.h"
+# include "binarySearch.hip.h"
 # include "cuda.h"
 # include "eval.hip.h"
 # include "utils.h"

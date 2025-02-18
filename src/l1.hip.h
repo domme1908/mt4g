@@ -3,7 +3,7 @@
 
 #include <cstdio>
 #include <chrono>
-#include "binarySearch.h"
+#include "binarySearch.hip.h"
 #include <hip/hip_runtime.h>
 #include "eval.hip.h"
 #include "GPU_resources.hip.h"

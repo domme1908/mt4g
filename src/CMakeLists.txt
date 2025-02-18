@@ -41,7 +41,7 @@ set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
 
 
 if (HIP_FOUND)
-
+    set(CMAKE_SKIP_RPATH TRUE)
     # Create the executable
     add_executable(c15 starter_other/ConstMemory.hip.cpp)
     add_executable(mt4g capture.hip.cpp )

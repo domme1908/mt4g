@@ -7,7 +7,7 @@
 #include "eval.hip.h"
 #include "utils.h"
 #include "GPU_resources.hip.h"
-#include "binarySearch.h"
+#include "binarySearch.hip.h"
 
 __global__ void texture_size(cudaTextureObject_t tex, unsigned int size, unsigned int *duration, unsigned int *index, bool *isDisturbed);
 
