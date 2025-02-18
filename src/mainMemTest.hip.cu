@@ -1,86 +1,87 @@
 
-#ifndef CUDATEST_L1LATTEST
-#define CUDATEST_L1LATTEST
+#ifndef CUDATEST_MAIN
+#define CUDATEST_MAIN
 
 # include <cstdio>
 
 # include "cuda.h"
 # include "eval.h"
-# include "utils.h"
-# include "GPU_resources.cuh"
+# include "GPU_resources.hip.cu"
 
-__global__ void l1_lat_test (unsigned int * my_array, int array_length, unsigned int * duration, unsigned int* index, bool* isDisturbed);
+__global__ void main_size_test (unsigned int * my_array, unsigned int * duration, unsigned int *index, bool* isDisturbed);
 
-bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error);
+bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error);
 
-#define FreeMeasureL1LatTest()  \
-free(avg);                      \
-free(misses);                   \
-free(time);                     \
+#define FreeMeasureMain()   \
+free(avg);                  \
+free(misses);               \
+free(time);                 \
 
-void measure_L1_LatTest() {
+
+CacheResults measure_Main(int l2SizeInBytes, int stride) {
     double *avg = (double*) malloc(sizeof(double));
     unsigned int* misses = (unsigned int*) malloc(sizeof(unsigned int));
-
     unsigned int** time = (unsigned int**) malloc(sizeof(unsigned int*));
     if (avg == nullptr || misses == nullptr || time == nullptr) {
-        FreeMeasureL1LatTest()
+        FreeMeasureMain()
         printErrorCodeInformation(1);
         exit(1);
     }
 
-    int stride = 8;
-    int arrSize = 200;
     int error = 0;
     bool dist = true;
     int count = 5;
 
     while (dist && count > 0) {
-        dist = launchL1LatTestKernelBenchmark(arrSize, stride, avg, misses, time, &error);
+        dist = launchMainKernelBenchmark(l2SizeInBytes, stride, avg, misses, time, &error);
         --count;
     }
 
     free(time[0]);
-    FreeMeasureL1LatTest()
+    FreeMeasureMain()
 
     if (error != 0) {
         printErrorCodeInformation(error);
         exit(error);
     }
+
+    return CacheResults{};
 }
 
-bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int *error)  {
+
+bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
     hipError_t error_id;
 
-    unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr, *d_a = nullptr, *d_index = nullptr, *duration = nullptr,*lines = nullptr;
-    bool *disturb = nullptr, *d_disturb = nullptr;
+    unsigned int* h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,
+    *d_a = nullptr, *d_index = nullptr, *duration = nullptr;
+    bool* disturb = nullptr, *d_disturb = nullptr;
 
     do {
         // Allocate Memory on Host
         h_a = (unsigned int *) malloc(sizeof(unsigned int) * (N));
         if (h_a == nullptr) {
-            printf("[L1LATTEST.CUH]: malloc h_a Error\n");
+            printf("[MAINMEMTEST.CUH]: malloc h_a Error\n");
             *error = 1;
             break;
         }
 
         h_index = (unsigned int *) malloc(sizeof(unsigned int) * MEASURE_SIZE);
         if (h_index == nullptr) {
-            printf("[L1LATTEST.CUH]: malloc h_index Error\n");
+            printf("[MAINMEMTEST.CUH]: malloc h_index Error\n");
             *error = 1;
             break;
         }
 
         h_timeinfo = (unsigned int *) malloc(sizeof(unsigned int) * MEASURE_SIZE);
         if (h_timeinfo == nullptr) {
-            printf("[L1LATTEST.CUH]: malloc h_timeinfo Error\n");
+            printf("[MAINMEMTEST.CUH]: malloc h_timeinfo Error\n");
             *error = 1;
             break;
         }
 
         disturb = (bool *) malloc(sizeof(bool));
         if (disturb == nullptr) {
-            printf("[L1LATTEST.CUH]: malloc disturb Error\n");
+            printf("[MAINMEMTEST.CUH]: malloc disturb Error\n");
             *error = 1;
             break;
         }
@@ -88,75 +89,58 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
-            *error = 2;
-            break;
-        }
-
-        error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
+            *error = 2;
+            break;
+        }
+
+        error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
+        if (error_id != cudaSuccess) {
+            printf("[MAINMEMTEST.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMalloc d_disturb Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMalloc d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        int line_count = N / stride;
-
-        lines = (unsigned int *)malloc(sizeof(unsigned int) * line_count);
-        if (!lines)
-        {
-            printf("Error: malloc for lines failed.\n");
-            free(h_a);
-            return 1;
+        // Initialize p-chase array
+        for (int i = 0; i < N; i++) {
+            //original:
+            h_a[i] = (i + stride) % N;
         }
 
-        for (int i = 0; i < line_count; i++)
-        {
-            lines[i] = i;
-        }
-
-        fisher_yates_shuffle(lines, line_count);
-        for (int i = 0; i < line_count - 1; i++)
-        {
-            int current_line = lines[i];
-            int next_line = lines[i + 1];
-            h_a[current_line * stride] = next_line * stride;
-        }
-        h_a[lines[line_count - 1] * stride] = lines[0] * stride;
-
-
-        // Copy array from GPU to Host
+        // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy h_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
+
         hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
-        l1_lat_test <<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
+        main_size_test <<<Dg, Db>>>(d_a, duration, d_index, d_disturb);
 
         hipDeviceSynchronize();
+
         error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: Kernel launch/execution with clock Error:%s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
@@ -165,27 +149,27 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1LATTEST.CUH]: hipMemcpy d_disturb Error: %s\n", hipGetErrorString(error_id));
+            printf("[MAINMEMTEST.CUH]: hipMemcpy d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
         hipDeviceSynchronize();
 
-        createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "L1Lat_");
+        createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "Main_");
     } while(false);
 
     // Free Memory on GPU
@@ -193,12 +177,12 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
         hipFree(d_a);
     }
 
-    if (duration != nullptr) {
-        hipFree(duration);
-    }
-
     if (d_index != nullptr) {
         hipFree(d_index);
+    }
+
+    if (duration != nullptr) {
+        hipFree(duration);
     }
 
     if (d_disturb != nullptr) {
@@ -216,6 +200,10 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
         free(h_a);
     }
 
+    if (h_index != nullptr) {
+        free(h_index);
+    }
+
     if (h_timeinfo != nullptr) {
         if (time != nullptr) {
             time[0] = h_timeinfo;
@@ -224,16 +212,14 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
         }
     }
 
-    if (h_index != nullptr) {
-        free(h_index);
-    }
-
     hipDeviceReset();
     return ret;
 }
 
-__global__ void l1_lat_test (unsigned int * my_array, int array_length, unsigned int * duration, unsigned int* index, bool* isDisturbed) {
+__global__ void main_size_test (unsigned int * my_array, unsigned int * duration, unsigned int *index, bool* isDisturbed) {
+
     unsigned int start_time, end_time;
+
     bool dist = false;
     unsigned int j = 0;
 
@@ -241,31 +227,34 @@ __global__ void l1_lat_test (unsigned int * my_array, int array_length, unsigned
         s_index[k] = 0;
         s_tvalue[k] = 0;
     }
-    unsigned int* ptr;
-	for (int k = 0; k < array_length; k++) {
-        ptr = my_array + j;
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+
+    // Warming up, filling TLP and PT
+    for (int k = 0; k < 32; k++) {
+        j = my_array[j];
     }
 
+    // No real first round required
+    asm volatile(" .reg .u64 smem_ptr64;\n\t"
+                 " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_index));
     for (int k = 0; k < MEASURE_SIZE; k++) {
-        ptr = my_array + j;
-        start_time = clock();
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
-        s_index[k] = j;
-        end_time = clock();
-        s_tvalue[k] = end_time - start_time;
+        unsigned int* ptr = my_array + j;
+        asm volatile ("mov.u32 %0, %%clock;\n\t"
+                      "ld.global.cg.u32 %1, [%3];\n\t"
+                      "st.shared.u32 [smem_ptr64], %1;"
+                      "mov.u32 %2, %%clock;\n\t"
+                      "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+            s_tvalue[k] = end_time-start_time;
     }
 
     for(int k=0; k<MEASURE_SIZE; k++){
         if (s_tvalue[k] > 1200) {
-            //printf("boom\n");
             dist = true;
         }
         index[k]= s_index[k];
         duration[k] = s_tvalue[k];
     }
-
     *isDisturbed = dist;
 }
 
-#endif //CUDATEST_L1LATTEST
+#endif //CUDATEST_MAIN
+

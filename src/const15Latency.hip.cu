@@ -5,7 +5,7 @@
 #ifndef CUDATEST_CONST15LATENCY_CUH
 #define CUDATEST_CONST15LATENCY_CUH
 
-#include "GPU_resources.cuh"
+#include "GPU_resources.hip.cu"
 
 #ifndef __has_include
   static_assert(false, "__has_include not supported");

@@ -5,8 +5,8 @@
 #ifndef CUDATEST_TEXTURECACHE_CUH
 #define CUDATEST_TEXTURECACHE_CUH
 
-# include "texture.cuh"
-# include "texture_lat.cuh"
+# include "texture.hip.cu"
+# include "texture_lat.hip.cu"
 
 CacheResults executeTextureCacheChecks(){
     CacheResults result;

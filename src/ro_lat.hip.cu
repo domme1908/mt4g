@@ -1,24 +1,23 @@
 
-#ifndef CUDATEST_L1_LAT
-#define CUDATEST_L1_LAT
+#ifndef CUDATEST_RO_LAT
+#define CUDATEST_RO_LAT
 
 # include <cstdio>
 
 # include "cuda.h"
 # include "eval.h"
-# include "GPU_resources.cuh"
 # include "utils.h"
+# include "GPU_resources.hip.cu"
 
-__global__ void l1_lat (unsigned int * my_array, int array_length, unsigned int * time);
-__global__ void l1_lat_globaltimer (unsigned int * my_array, int array_length, unsigned int * time);
+__global__ void ro_lat(const unsigned int* __restrict__ my_array, int array_length, unsigned int * time);
+__global__ void ro_lat_globaltimer(const unsigned int* __restrict__ my_array, int array_length, unsigned int * time);
 
-LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error);
+LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error);
 
-LatencyTuple measure_L1_Lat() {
+LatencyTuple measure_RO_Lat() {
     int stride = 8;
-    int arrSize = 200;
     int error = 0;
-    LatencyTuple lat = launchL1LatKernelBenchmark(arrSize, stride, &error);
+    LatencyTuple lat = launchROLatKernelBenchmark(200, stride, &error);
     if (error != 0) {
         printErrorCodeInformation(error);
         exit(error);
@@ -26,23 +25,25 @@ LatencyTuple measure_L1_Lat() {
     return lat;
 }
 
-LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
+
+LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
     LatencyTuple result;
     hipError_t error_id;
+
     unsigned int *h_a = nullptr, *h_time = nullptr, *d_a = nullptr, *d_time = nullptr, *lines = nullptr;
 
     do {
         // Allocate Memory on Host
         h_a = (unsigned int *) malloc(sizeof(unsigned int) * (N));
         if (h_a == nullptr) {
-            printf("[L1_LAT.CUH]: malloc h_a Error\n");
+            printf("[RO_LAT.CUH]: malloc h_a Error\n");
             *error = 1;
             break;
         }
 
         h_time = (unsigned int *) malloc(sizeof(unsigned int));
         if (h_time == nullptr) {
-            printf("[L1_LAT.CUH]: malloc h_time Error\n");
+            printf("[RO_LAT.CUH]: malloc h_time Error\n");
             *error = 1;
             break;
         }
@@ -50,17 +51,19 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_time, sizeof(unsigned int));
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
+
+        // Initialize p-chase array
         int line_count = N / stride;
 
         lines = (unsigned int *)malloc(sizeof(unsigned int) * line_count);
@@ -71,8 +74,6 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
             break;
         }
 
-
-        // Initialize p-chase array
         for (int i = 0; i < line_count; i++)
         {
             lines[i] = i;
@@ -90,22 +91,23 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
+
         hipDeviceSynchronize();
 
         // Launch Kernel function with clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
-        l1_lat <<<Dg, Db>>>(d_a, N, d_time);
+        ro_lat <<<Dg, Db>>>(d_a, N, d_time);
 
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: Kernel launch/execution with clock Error:%s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
@@ -114,7 +116,7 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -122,19 +124,20 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
 
         unsigned int lat = h_time[0];
 #ifdef IsDebug
-        fprintf(out, "Measured avg latencyCycles is %d cycles\n", lat);
+        fprintf(out, "Measured Read-Only avg latencyCycles is %d cycles (add-lat %d and %d)\n", lat, h_time[1], h_time[2]);
 #endif //IsDebug
         result.latencyCycles = lat;
 
         hipDeviceSynchronize();
 
         // Launch Kernel function with globaltimer
-        l1_lat_globaltimer<<<Dg, Db>>>(d_a, N, d_time);
+        ro_lat_globaltimer<<<Dg, Db>>>(d_a, N, d_time);
 
         hipDeviceSynchronize();
+
         error_id = hipGetLastError();
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
@@ -143,7 +146,7 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != cudaSuccess) {
-            printf("[L1_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
+            printf("[RO_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
@@ -151,10 +154,10 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
 
         lat = h_time[0];
 #ifdef IsDebug
-        fprintf(out, "Measured avg latencyCycles is %d nanoseconds\n", lat);
+        fprintf(out, "Measured Read-Only avg latencyCycles is %d nanoseconds\n", lat);
 #endif //IsDebug
         result.latencyNano = lat;
-    } while(false);
+    } while (false);
 
     // Free Memory on GPU
     if (d_a != nullptr) {
@@ -178,47 +181,45 @@ LatencyTuple launchL1LatKernelBenchmark(int N, int stride, int* error) {
     return result;
 }
 
-__global__ void l1_lat_globaltimer (unsigned int * my_array, int array_length, unsigned int *time) {
-    int iter = 1000;
+__global__ void ro_lat_globaltimer (const unsigned int* __restrict__ my_array, int array_length, unsigned int *time) {
+    int iter = 10000;
 
     unsigned long long start_time, end_time;
     unsigned int j = 0;
 
-    unsigned int* ptr;
+    // First round
     for (int k = 0; k < array_length; k++) {
-        ptr = my_array + j;
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        j = __ldg(&my_array[j]);
     }
 
+    // Second round
     asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(start_time));
     for (int k = 0; k < iter; k++) {
-        ptr = my_array + j;
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        j = __ldg(&my_array[j]);
     }
     s_index[0] = j;
     asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(end_time));
 
     unsigned int diff = (unsigned int) (end_time - start_time);
-    time[0] = diff / iter;
 
+    time[0] = diff / iter;
 }
 
-__global__ void l1_lat (unsigned int * my_array, int array_length, unsigned int *time) {
-    int iter = 1000;
+__global__ void ro_lat (const unsigned int* __restrict__ my_array, int array_length, unsigned int *time) {
+    int iter = 10000;
 
     unsigned int start_time, end_time;
     unsigned int j = 0;
 
-    unsigned int* ptr;
+    // First round
 	for (int k = 0; k < array_length; k++) {
-        ptr = my_array + j;
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        j = __ldg(&my_array[j]);
     }
 
+    // Second round
     start_time = clock();
     for (int k = 0; k < iter; k++) {
-        ptr = my_array + j;
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        j = __ldg(&my_array[j]);
     }
     s_index[0] = j;
     end_time = clock();
@@ -228,5 +229,5 @@ __global__ void l1_lat (unsigned int * my_array, int array_length, unsigned int 
     time[0] = diff / iter;
 }
 
-#endif //CUDATEST_L1_LAT
+#endif //CUDATEST_RO_LAT
 

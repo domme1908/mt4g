@@ -9,7 +9,7 @@
 # include "cuda.h"
 # include "eval.h"
 # include "utils.h"
-# include "GPU_resources.cuh"
+# include "GPU_resources.hip.cu"
 
 
 __global__ void RO_size (const unsigned int* __restrict__ my_array, int array_length,  unsigned int * duration, unsigned int *index, bool* isDisturbed);

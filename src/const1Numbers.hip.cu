@@ -5,9 +5,9 @@
 #ifndef CUDATEST_CONST1NUMBERS_CUH
 #define CUDATEST_CONST1NUMBERS_CUH
 
-#include "GPU_resources.cuh"
+#include "GPU_resources.hip.cu"
 
-#include "ShareChk/chkAllConst.cuh"
+#include "ShareChk/chkAllConst.hip.cu"
 
 #define FreeNumberOfC1Res() \
 free(avgRef);               \

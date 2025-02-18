@@ -6,7 +6,7 @@
 #include "binarySearch.h"
 #include <hip/hip_runtime.h>
 #include "eval.h"
-#include "GPU_resources.cuh"
+#include "GPU_resources.hip.cu"
 # include "utils.h"
 
 __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed);

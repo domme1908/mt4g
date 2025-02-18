@@ -5,9 +5,9 @@
 #ifndef CUDATEST_CONSTMEMORY_CUH
 #define CUDATEST_CONSTMEMORY_CUH
 
-#include "const15MemTest_sep.cuh"
-#include "constL1_5_lat_sep.cuh"
-#include "../cudaDeviceProperties.cuh"
+#include "const15MemTest_sep.hip.cu"
+#include "constL1_5_lat_sep.hip.cu"
+#include "../cudaDeviceProperties.hip.cu"
 
 
 void executeConstMemoryChecks() {

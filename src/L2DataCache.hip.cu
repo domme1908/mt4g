@@ -5,10 +5,10 @@
 #ifndef CUDATEST_L2DATACACHE_CUH
 #define CUDATEST_L2DATACACHE_CUH
 
-# include "l2_lat.cuh"
-# include "l2LatTest.cuh"
-# include "LineSize/l2_linesize.cuh"
-# include "l2_segment_size.cuh"
+# include "l2_lat.hip.cu"
+# include "l2LatTest.hip.cu"
+# include "LineSize/l2_linesize.hip.cu"
+# include "l2_segment_size.hip.cu"
 
 
 CacheResults executeL2DataCacheChecks(unsigned int l2SizeBytes, unsigned int l1SizeBytes = L2_START_SIZE ){

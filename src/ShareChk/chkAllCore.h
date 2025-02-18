@@ -5,10 +5,10 @@
 #ifndef CUDATEST_CHKALLCORE_CUH
 #define CUDATEST_CHKALLCORE_CUH
 
-# include "chkAllTexture.cuh"
-# include "chkAllRO.cuh"
-# include "chkAllL1.cuh"
-# include "chkAllConst.cuh"
+# include "chkAllTexture.hip.cu"
+# include "chkAllRO.hip.cu"
+# include "chkAllL1.hip.cu"
+# include "chkAllConst.hip.cu"
 
 uIntTriple checkNumberOfCachesPerSM(CacheResults textureResults, CacheResults ReadOnlyResults, CacheResults L1_results, CudaDeviceInfo cudaInfo,
                                     bool ROShareTexture, bool ROShareL1Data, bool L1ShareTexture);
