@@ -6,7 +6,7 @@
 
 # include "cuda.h"
 # include "eval.h"
-# include "GPU_resources.hip.cu"
+# include "GPU_resources.hip.h"
 # include "utils.h"
 
 __global__ void l1_lat (unsigned int * my_array, int array_length, unsigned int * time);

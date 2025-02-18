@@ -5,12 +5,12 @@
 #ifndef CUDATEST_CONSTANTCACHE_CUH
 #define CUDATEST_CONSTANTCACHE_CUH
 
-# include "constCache2.hip.cu"
-# include "constL1_lat.hip.cu"
-# include "const15Latency.hip.cu"
-# include "const1Numbers.hip.cu"
-# include "LineSize/c1_linesize.hip.cu"
-# include "LineSize/c15_linesize.hip.cu"
+# include "constCache2.hip.h"
+# include "constL1_lat.hip.h"
+# include "const15Latency.hip.h"
+# include "const1Numbers.hip.h"
+# include "LineSize/c1_linesize.hip.h"
+# include "LineSize/c15_linesize.hip.h"
 
 Tuple<CacheResults> executeConstantCacheChecks(int deviceID){
     Tuple<CacheResults> results;

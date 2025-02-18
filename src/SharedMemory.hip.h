@@ -5,8 +5,8 @@
 #ifndef CUDATEST_SHAREDMEMORY_CUH
 #define CUDATEST_SHAREDMEMORY_CUH
 
-#include "shared_mem_lat.hip.cu"
-#include "sharedMemTest.hip.cu"
+#include "shared_mem_lat.hip.h"
+#include "sharedMemTest.hip.h"
 
 CacheResults executeSharedMemoryChecks(){
     CacheResults result;

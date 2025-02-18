@@ -5,24 +5,24 @@
 #define CAPTURE
 
 # include "eval.h"
-# include "cudaDeviceProperties.hip.cu"
-# include "L1DataCache.hip.cu"
-# include "ReadOnlyCache.hip.cu"
-# include "TextureCache.hip.cu"
-# include "ConstantCache.hip.cu"
-# include "L2DataCache.hip.cu"
-# include "l1_l2_diff.hip.cu"
-# include "ShareChk/chkConstShareL1Data.hip.cu"
-# include "ShareChk/chkROShareTexture.hip.cu"
-# include "ShareChk/chkROShareL1Data.hip.cu"
-# include "ShareChk/chkL1ShareTexture.hip.cu"
-# include "ShareChk/chkTwoTexture.hip.cu"
-# include "ShareChk/chkTwoRO.hip.cu"
-# include "ShareChk/chkTwoL1.hip.cu"
-# include "ShareChk/chkTwoC1.hip.cu"
-# include "MainMemory.hip.cu"
-# include "SharedMemory.hip.cu"
-# include "ShareChk/chkAllCore.hip.cu"
+# include "cudaDeviceProperties.hip.h"
+# include "L1DataCache.hip.h"
+# include "ReadOnlyCache.hip.h"
+# include "TextureCache.hip.h"
+# include "ConstantCache.hip.h"
+# include "L2DataCache.hip.h"
+# include "l1_l2_diff.hip.h"
+# include "ShareChk/chkConstShareL1Data.hip.h"
+# include "ShareChk/chkROShareTexture.hip.h"
+# include "ShareChk/chkROShareL1Data.hip.h"
+# include "ShareChk/chkL1ShareTexture.hip.h"
+# include "ShareChk/chkTwoTexture.hip.h"
+# include "ShareChk/chkTwoRO.hip.h"
+# include "ShareChk/chkTwoL1.hip.h"
+# include "ShareChk/chkTwoC1.hip.h"
+# include "MainMemory.hip.h"
+# include "SharedMemory.hip.h"
+# include "ShareChk/chkAllCore.hip.h"
 
 # include <climits>
 
@@ -33,7 +33,8 @@ bool L1ShareTexture = false;
 
 enum Caches {
     L2, Texture, RO, Const1, Const2, L1, MAIN, SHARED
-};
+};export HIP_PLATFORM=nvidia
+
 
 char unitsByte[4][4] = {"B", "KiB", "MiB", "GiB"};
 char unitsHz[3][4] = {"KHz", "MHz", "GHz"};

@@ -7,7 +7,7 @@
 #include <hip/hip_runtime.h>
 #include "eval.h"
 #include "utils.h"
-#include "GPU_resources.hip.cu"
+#include "GPU_resources.hip.h"
 
 // texture<int, 1, cudaReadModeElementType> tex_ref;
 

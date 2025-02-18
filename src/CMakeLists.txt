@@ -9,12 +9,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cuda-samples/Common)
 
 # The user wants 2 executables: c15 and mt4g
 add_executable(c15
-    starter_other/ConstMemory.cu
+    starter_other/ConstMemory.hip.cu
     # ... If there are other source files for c15, list them here ...
 )
 
 add_executable(mt4g
-    capture.cu
+    capture.hip.cu
     # ... If there are additional .cu/.cpp files for mt4g, list them here ...
 )
 

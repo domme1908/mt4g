@@ -5,8 +5,8 @@
 #ifndef CUDATEST_MAINMEMORY_CUH
 #define CUDATEST_MAINMEMORY_CUH
 
-#include "main_mem_lat.hip.cu"
-#include "mainMemTest.hip.cu"
+#include "main_mem_lat.hip.h"
+#include "mainMemTest.hip.h"
 
 CacheResults executeMainMemoryChecks(int l2SizeInBytes){
     CacheResults result;

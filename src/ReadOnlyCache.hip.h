@@ -5,8 +5,8 @@
 #ifndef CUDATEST_READONLYCACHE_CUH
 #define CUDATEST_READONLYCACHE_CUH
 
-# include "ro.hip.cu"
-# include "ro_lat.hip.cu"
+# include "ro.hip.h"
+# include "ro_lat.hip.h"
 
 CacheResults executeReadOnlyCacheChecks(){
     CacheResults result;

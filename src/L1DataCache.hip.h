@@ -5,9 +5,9 @@
 #ifndef CUDATEST_L1DATACACHE_CUH
 #define CUDATEST_L1DATACACHE_CUH
 
-# include "l1.hip.cu"
-# include "l1LatTest.hip.cu"
-# include "l1_lat.hip.cu"
+# include "l1.hip.h"
+# include "l1LatTest.hip.h"
+# include "l1_lat.hip.h"
 
 CacheResults executeL1DataCacheChecks(){
     CacheResults result;

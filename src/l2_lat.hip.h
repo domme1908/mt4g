@@ -7,7 +7,7 @@
 #include <hip/hip_runtime.h>
 #include "eval.h"
 #include "utils.h"
-#include "GPU_resources.hip.cu"
+#include "GPU_resources.hip.h"
 
 __global__ void l2_lat(unsigned int *my_array, int array_length, unsigned int *time);
 __global__ void l2_lat_globaltimer(unsigned int *my_array, int array_length, unsigned int *time);

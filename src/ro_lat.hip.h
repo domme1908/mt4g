@@ -7,7 +7,7 @@
 # include "cuda.h"
 # include "eval.h"
 # include "utils.h"
-# include "GPU_resources.hip.cu"
+# include "GPU_resources.hip.h"
 
 __global__ void ro_lat(const unsigned int* __restrict__ my_array, int array_length, unsigned int * time);
 __global__ void ro_lat_globaltimer(const unsigned int* __restrict__ my_array, int array_length, unsigned int * time);

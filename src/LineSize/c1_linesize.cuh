@@ -6,7 +6,7 @@
 
 # include "cuda.h"
 # include "../eval.h"
-# include "../GPU_resources.hip.cu"
+# include "../GPU_resources.hip.h"
 
 __global__ void c1_linesize (unsigned int upperLimit, unsigned int* linesize);
 
