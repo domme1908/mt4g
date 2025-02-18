@@ -33,7 +33,7 @@ bool L1ShareTexture = false;
 
 enum Caches {
     L2, Texture, RO, Const1, Const2, L1, MAIN, SHARED
-};export HIP_PLATFORM=nvidia
+};
 
 
 char unitsByte[4][4] = {"B", "KiB", "MiB", "GiB"};
