@@ -4,7 +4,7 @@
 
 # include <cstdio>
 
-# include "cuda.h"
+
 # include "eval.hip.h"
 # include "GPU_resources.hip.h"
 
@@ -88,28 +88,28 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMalloc d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -123,7 +123,7 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMemcpy h_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -139,7 +139,7 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: Kernel launch/execution with clock Error:%s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -148,21 +148,21 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[MAINMEMTEST.CUH]: hipMemcpy d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -235,14 +235,14 @@ __global__ void main_size_test (unsigned int * my_array, unsigned int * duration
 
     // No real first round required
     asm volatile(" .reg .u64 smem_ptr64;\n\t"
-                 " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_index));
+                 " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "r"(s_index));
     for (int k = 0; k < MEASURE_SIZE; k++) {
         unsigned int* ptr = my_array + j;
         asm volatile ("mov.u32 %0, %%clock;\n\t"
                       "ld.global.cg.u32 %1, [%3];\n\t"
                       "st.shared.u32 [smem_ptr64], %1;"
                       "mov.u32 %2, %%clock;\n\t"
-                      "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+                      "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
             s_tvalue[k] = end_time-start_time;
     }
 

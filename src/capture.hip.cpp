@@ -534,20 +534,20 @@ int main(int argc, char *argv[]){
 
     // Use first device (in case of multi-GPU machine)
     int numberGPUs;
-    cudaGetDeviceCount(&numberGPUs);
+    hipGetDeviceCount(&numberGPUs);
     if (deviceID >= numberGPUs) {
         printf("Specified device ID %d >= %d(number of installed GPUs) - will use default GPU 0!\n"
                "Use \'nvidia-smi\' to see the ID of the desired GPU device!\n", deviceID, numberGPUs);
         deviceID = 0;
     }
-    cudaSetDevice(deviceID);
+    hipSetDevice(deviceID);
 
 #ifdef IsDebug
     out = fopen("GPUlog.log", "w");
 #endif //IsDebug
 
     size_t freeMem, totalMem;
-    cudaMemGetInfo(&freeMem, &totalMem);
+    hipMemGetInfo(&freeMem, &totalMem);
 
     CudaDeviceInfo cudaInfo = getDeviceProperties(cudaCoreQueryPath, coreSwitch, deviceID);
 

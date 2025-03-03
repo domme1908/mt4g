@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    cudaSetDevice(deviceID);
+    hipSetDevice(deviceID);
 
     executeConstMemoryChecks();
     return 0;

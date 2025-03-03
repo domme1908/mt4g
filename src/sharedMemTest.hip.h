@@ -4,7 +4,7 @@
 
 # include <cstdio>
 
-# include "cuda.h"
+
 # include "eval.hip.h"
 # include "GPU_resources.hip.h"
 
@@ -82,21 +82,21 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: hipMalloc d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -112,7 +112,7 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -121,21 +121,21 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[SHAREDMEMTEST.CUH]: hipMemcpy d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;

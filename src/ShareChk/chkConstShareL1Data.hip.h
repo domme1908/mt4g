@@ -5,7 +5,7 @@
 # include <cstdio>
 # include <cstdint>
 
-# include "cuda.h"
+
 
 __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsigned int * my_array, unsigned int * durationConst, unsigned int * durationData, unsigned int *indexConst, unsigned int *indexData,
                                   bool* isDisturbed) {
@@ -51,7 +51,7 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
     if (threadIdx.x == 1) {
         for (int k = 0; k < DataN; k++) {
             ptr = my_array + j;
-            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
         }
     }
 
@@ -72,14 +72,14 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
 
     if (threadIdx.x == 1) {
         asm volatile(" .reg .u64 smem_ptr64;\n\t"
-                     " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_indexData));
+                     " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "r"(s_indexData));
         for (int k = 0; k < LESS_SIZE; k++) {
             ptr = my_array + j;
             asm volatile ("mov.u32 %0, %%clock;\n\t"
                           "ld.global.ca.u32 %1, [%3];\n\t"
                           "st.shared.u32 [smem_ptr64], %1;"
                           "mov.u32 %2, %%clock;\n\t"
-                          "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+                          "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
             s_tvalueData[k] = end_time-start_time;
         }
     }
@@ -172,42 +172,42 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &durationConst, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc durationConst Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &durationData, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc durationData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexConst, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_indexConst Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexData, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_indexData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (DataN));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -220,7 +220,7 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * DataN, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -234,7 +234,7 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -243,7 +243,7 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfoConst, (void *) durationConst, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy durationConst Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -251,7 +251,7 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         error_id = hipMemcpy((void *) h_timeinfoData, (void *) durationData, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy durationData Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -259,7 +259,7 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         error_id = hipMemcpy((void *) h_indexConst, (void *) d_indexConst, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_indexConst Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -267,14 +267,14 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         error_id = hipMemcpy((void *) h_indexData, (void *) d_indexData, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_indexData Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;

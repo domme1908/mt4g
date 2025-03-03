@@ -9,11 +9,11 @@
 #define USE_HELPER_CUDA_DEFINITION
 
 #include "eval.hip.h"
-#include <cuda.h>
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+#include <hip/hip_runtime.h>
 #ifdef USE_HELPER_CUDA_DEFINITION
 #include "cuda-samples/Common/helper_cuda.h"
 #endif
@@ -86,16 +86,16 @@ int parseCoreLine(char* line) {
 int getCoreNumber(char* cmd) {
     printf("Execute command to get number of cores: %s\n", cmd);
 #ifdef _WIN32
-    if (strstr(cmd, "nvidia-settings") != nullptr) {
-        printf("nvidia-settings does not work for windows\n");
+    if (strstr(cmd, "rocm-smi") != nullptr) {
+        printf("rocm-smi does not work for windows\n");
         return 0;
     } else if(strstr(cmd, "deviceQuery.exe") == nullptr) {
         printf("It is required to use deviceQuery.exe\n");
         return 0;
     }
 #else
-    if (strstr(cmd, "nvidia-settings") != nullptr && strstr(cmd, "deviceQuery") != nullptr)  {
-        printf("Nvidia-settings or deviceQuery not in command!\n");
+    if (strstr(cmd, "rocm-smi") != nullptr && strstr(cmd, "deviceQuery") != nullptr)  {
+        printf("rocm-smi or deviceQuery not in command!\n");
         return 0;
     }
 #endif
@@ -121,7 +121,7 @@ int getCoreNumber(char* cmd) {
             }
         }
     } else {
-        printf("Using nvidia-settings option for number of cores\n");
+        printf("Using rocm-smi option for number of cores\n");
         char num[16] = {0};
         fgets(num, 16, p);
         totalNumOfCores = cvtCharArrToInt(num);
@@ -179,14 +179,14 @@ CudaDeviceInfo getDeviceProperties(char* nviCoreCmd, int coreSwitch, int deviceI
     CudaDeviceInfo info;
 
     int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    cudaDeviceProp deviceProp{};
+    hipGetDeviceCount(&deviceCount);
+    hipDeviceProp_t deviceProp{};
 
     if (deviceID >= deviceCount) {
         deviceID = 0;
     }
 
-    cudaGetDeviceProperties(&deviceProp, deviceID);
+    hipGetDeviceProperties(&deviceProp, deviceID);
 #ifdef _WIN32
     strcpy_s(info.GPUname, deviceProp.name);
 #else

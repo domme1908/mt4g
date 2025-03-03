@@ -4,7 +4,7 @@
 
 # include <cstdio>
 
-# include "cuda.h"
+
 # include "eval.hip.h"
 # include "utils.h"
 # include "GPU_resources.hip.h"
@@ -87,28 +87,28 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMalloc d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -141,7 +141,7 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
 
         // Copy array from GPU to Host
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -155,7 +155,7 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
 
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -164,21 +164,21 @@ bool launchL1LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L1LATTEST.CUH]: hipMemcpy d_disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -244,13 +244,13 @@ __global__ void l1_lat_test (unsigned int * my_array, int array_length, unsigned
     unsigned int* ptr;
 	for (int k = 0; k < array_length; k++) {
         ptr = my_array + j;
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
     }
 
     for (int k = 0; k < MEASURE_SIZE; k++) {
         ptr = my_array + j;
         start_time = clock();
-        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        asm volatile ("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
         s_index[k] = j;
         end_time = clock();
         s_tvalue[k] = end_time - start_time;

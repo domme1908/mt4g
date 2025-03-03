@@ -4,7 +4,7 @@
 
 # include <cstdio>
 
-# include "cuda.h"
+
 # include "../eval.hip.h"
 # include "../GPU_resources.hip.h"
 
@@ -39,7 +39,7 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         }
         // Allocation on GPU Memory
         error_id = hipMalloc((void **) &d_lineSize, sizeof(unsigned int));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[C15_LINESIZE.CUH]: hipMalloc d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -52,7 +52,7 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         c15_linesize <<<Dg, Db>>>(d_lineSize);
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[C15_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -60,7 +60,7 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         /* copy results from GPU to CPU */
         hipDeviceSynchronize();
         error_id = hipMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[C15_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;

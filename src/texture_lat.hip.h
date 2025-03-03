@@ -9,10 +9,10 @@
 #include "utils.h"
 #include "GPU_resources.hip.h"
 
-// texture<int, 1, cudaReadModeElementType> tex_ref;
+// texture<int, 1, hipReadModeElementType> tex_ref;
 
-__global__ void texture_lat(cudaTextureObject_t tex, int *my_array, int array_length, unsigned int *time);
-__global__ void texture_lat_globaltimer(cudaTextureObject_t tex, int *my_array, int array_length, unsigned int *time);
+__global__ void texture_lat(hipTextureObject_t tex, int *my_array, int array_length, unsigned int *time);
+__global__ void texture_lat_globaltimer(hipTextureObject_t tex, int *my_array, int array_length, unsigned int *time);
 
 LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error);
 
@@ -37,7 +37,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
     int *h_a = nullptr, *d_a = nullptr;
     unsigned int *h_time = nullptr, *d_time = nullptr, *lines = nullptr;
     bool bindedTexture = false;
-    cudaTextureObject_t tex = 0;
+    hipTextureObject_t tex = 0;
 
     do
     {
@@ -60,7 +60,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **)&d_a, sizeof(int) * (N));
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -68,7 +68,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         }
 
         error_id = hipMalloc((void **)&d_time, sizeof(unsigned int));
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -102,7 +102,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(int) * N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
@@ -110,27 +110,27 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         }
 
         // Create Texture Object
-        cudaResourceDesc resDesc = {};
+        hipResourceDesc resDesc = {};
         memset(&resDesc, 0, sizeof(resDesc));
-        resDesc.resType = cudaResourceTypeLinear;
+        resDesc.resType = hipResourceTypeLinear;
         resDesc.res.linear.devPtr = d_a;
-        resDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+        resDesc.res.linear.desc.f = hipChannelFormatKindSigned;
         resDesc.res.linear.desc.x = 32; // bits per channel
         resDesc.res.linear.sizeInBytes = N * sizeof(int);
 
-        cudaTextureDesc texDesc = {};
+        hipTextureDesc texDesc = {};
         memset(&texDesc, 0, sizeof(texDesc));
-        texDesc.readMode = cudaReadModeElementType;
+        texDesc.readMode = hipReadModeElementType;
 
-        cudaCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
+        hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
-            printf("[TEXTURE_LAT.CUH]: cudaCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[TEXTURE_LAT.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
@@ -146,7 +146,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
@@ -156,7 +156,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -176,7 +176,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
@@ -186,7 +186,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[TEXTURE_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -204,7 +204,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
     if (bindedTexture)
     {
         // Free Texture Object
-        cudaDestroyTextureObject(tex);
+        hipDestroyTextureObject(tex);
     }
 
     // Free Memory on GPU
@@ -234,12 +234,13 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
     return result;
 }
 
-__global__ void texture_lat_globaltimer(cudaTextureObject_t tex, int *my_array, int array_length, unsigned int *time)
+__global__ void texture_lat_globaltimer(hipTextureObject_t tex, int *my_array, int array_length, unsigned int *time)
 {
     int iter = 10000;
 
     unsigned long long start_time, end_time;
     int j = 0;
+    unsigned int start_lo, start_hi, end_lo, end_hi;
 
     // First round
     for (int k = 0; k < array_length; k++)
@@ -255,7 +256,16 @@ __global__ void texture_lat_globaltimer(cudaTextureObject_t tex, int *my_array, 
     }
 
     // Second round
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(start_time));
+    asm volatile(
+        "s_memtime s[0:1]\n\t"
+        "s_mov_b32 %0, s0\n\t"
+        "s_mov_b32 %1, s1\n\t"
+        : "=r"(start_lo), "=r"(start_hi)
+        :
+        : "s0", "s1"
+    );
+    start_time = ((unsigned long long)start_hi << 32) | start_lo;
+
     for (int k = 0; k < iter; k++)
     {
         j = tex1Dfetch<int>(tex, j);
@@ -268,14 +278,23 @@ __global__ void texture_lat_globaltimer(cudaTextureObject_t tex, int *my_array, 
          */
     }
     s_index[0] = j;
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(end_time));
+    asm volatile(
+        "s_memtime s[0:1]\n\t"
+        "s_mov_b32 %0, s0\n\t"
+        "s_mov_b32 %1, s1\n\t"
+        : "=r"(end_lo), "=r"(end_hi)
+        :
+        : "s0", "s1"
+    );
+    end_time = ((unsigned long long)end_hi << 32) | end_lo;
+
 
     unsigned int diff = (unsigned int)(end_time - start_time);
 
     time[0] = diff / iter;
 }
 
-__global__ void texture_lat(cudaTextureObject_t tex, int *my_array, int array_length, unsigned int *time)
+__global__ void texture_lat(hipTextureObject_t tex, int *my_array, int array_length, unsigned int *time)
 {
     int iter = 10000;
 

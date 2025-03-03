@@ -4,7 +4,7 @@
 //# define isDebug
 # include <cstdio>
 
-# include "cuda.h"
+
 # include "../eval.hip.h"
 # include "../GPU_resources.hip.h"
 
@@ -44,7 +44,7 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
 
         // Allocate memory on GPU
         error_id = hipMalloc((void **) &d_time, sizeof(unsigned int));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTL1_5_LAT_SEP.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -59,7 +59,7 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
 
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTL1_5_LAT_SEP.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -68,7 +68,7 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTL1_5_LAT_SEP.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -87,7 +87,7 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTL1_5_LAT_SEP.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -96,7 +96,7 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTL1_5_LAT_SEP.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -129,19 +129,38 @@ LatencyTuple launchConstL1_5LatKernelBenchmark(int* error) {
 __global__ void constL1_5_lat_globaltimer (unsigned int *time) {
     unsigned long long start_time, end_time;
     unsigned int j = 0;
+    unsigned int start_lo, start_hi, end_lo, end_hi;
 
      // First round
     for (int k = 0; k < constArrSize; k++) {
         s_index[0] += arr[k];
     }
-
+    // Instructions found here
+    // https://www.amd.com/content/dam/amd/en/documents/radeon-tech-docs/instruction-set-architectures/sea-islands-instruction-set-architecture_0.pdf
     // Second round
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(start_time));
+    asm volatile(
+        "s_memtime s[0:1]\n\t"
+        "s_mov_b32 %0, s0\n\t"
+        "s_mov_b32 %1, s1\n\t"
+        : "=r"(start_lo), "=r"(start_hi)
+        :
+        : "s0", "s1"
+    );
+    start_time = ((unsigned long long)start_hi << 32) | start_lo;
+
     for (int k = 0; k < MEASURE_SIZE; k++) {
         j = arr[j];
     }
     s_index[1] = j;
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(end_time));
+    asm volatile(
+        "s_memtime s[0:1]\n\t"
+        "s_mov_b32 %0, s0\n\t"
+        "s_mov_b32 %1, s1\n\t"
+        : "=r"(end_lo), "=r"(end_hi)
+        :
+        : "s0", "s1"
+    );
+    end_time = ((unsigned long long)end_hi << 32) | end_lo;
 
     unsigned int diff = (unsigned int) (end_time - start_time);
 

@@ -55,7 +55,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **)&d_a, sizeof(unsigned int) * (N));
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -63,7 +63,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         }
 
         error_id = hipMalloc((void **)&d_time, sizeof(unsigned int));
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: hipMalloc d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
@@ -97,7 +97,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
@@ -113,7 +113,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
@@ -123,7 +123,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -145,7 +145,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
@@ -155,7 +155,7 @@ LatencyTuple launchL2LatKernelBenchmark(int N, int stride, int *error)
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess)
+        if (error_id != hipSuccess)
         {
             printf("[L2_LAT.CUH]: hipMemcpy d_time Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
@@ -202,6 +202,7 @@ __global__ void l2_lat_globaltimer(unsigned int *my_array, int array_length, uns
 
     unsigned long long start_time, end_time;
     unsigned int j = 0;
+    unsigned int start_lo, start_hi, end_lo, end_hi;
 
     // First round
     for (int k = 0; k < array_length; k++)
@@ -210,13 +211,29 @@ __global__ void l2_lat_globaltimer(unsigned int *my_array, int array_length, uns
     }
 
     // Second round
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(start_time));
+    asm volatile(
+        "s_memtime s[0:1]\n\t"
+        "s_mov_b32 %0, s0\n\t"
+        "s_mov_b32 %1, s1\n\t"
+        : "=r"(start_lo), "=r"(start_hi)
+        :
+        : "s0", "s1"
+    );
+    start_time = ((unsigned long long)start_hi << 32) | start_lo;
     for (int k = 0; k < iter; k++)
     {
-        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "l"(my_array + j) : "memory");
+        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "r"(my_array + j) : "memory");
     }
     s_index[0] = j;
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(end_time));
+    asm volatile(
+        "s_memtime s[0:1]\n\t"
+        "s_mov_b32 %0, s0\n\t"
+        "s_mov_b32 %1, s1\n\t"
+        : "=r"(end_lo), "=r"(end_hi)
+        :
+        : "s0", "s1"
+    );
+    end_time = ((unsigned long long)end_hi << 32) | end_lo;
 
     unsigned int diff = (unsigned int)(end_time - start_time);
 
@@ -240,7 +257,7 @@ __global__ void l2_lat(unsigned int *my_array, int array_length, unsigned int *t
     start_time = clock();
     for (int k = 0; k < iter; k++)
     {
-        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "l"(my_array + j) : "memory");
+        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "r"(my_array + j) : "memory");
     }
     s_index[0] = j;
     end_time = clock();

@@ -5,9 +5,9 @@
 # include <cstdio>
 # include <cstdint>
 
-# include "cuda.h"
 
-__global__ void chkTwoTexture(cudaTextureObject_t tex1, cudaTextureObject_t tex2, unsigned int TextureN, unsigned int * durationTxt1, unsigned int * durationTxt2, unsigned int *indexTxt1, unsigned int *indexTxt2,
+
+__global__ void chkTwoTexture(hipTextureObject_t tex1, hipTextureObject_t tex2, unsigned int TextureN, unsigned int * durationTxt1, unsigned int * durationTxt2, unsigned int *indexTxt1, unsigned int *indexTxt2,
                               bool* isDisturbed) {
     *isDisturbed = false;
 
@@ -111,7 +111,7 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
     *durationTxt1 = nullptr, *durationTxt2 = nullptr, *d_indexTxt1 = nullptr, *d_indexTxt2 = nullptr;
     bool *disturb = nullptr, *d_disturb = nullptr;
     bool bindedTexture = false;
-    cudaTextureObject_t tex1 = 0, tex2 = 0;
+    hipTextureObject_t tex1 = 0, tex2 = 0;
 
     do {
         // Allocate Memory on Host
@@ -159,42 +159,42 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &durationTxt1, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMalloc durationTxt1 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &durationTxt2, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMalloc durationTxt2 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexTxt1, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMalloc d_indextxt1 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexTxt2, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMalloc d_indexTxt2 Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_aTexture, sizeof(int) * (TextureN));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMalloc d_aTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -207,34 +207,34 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_aTexture, h_aTexture, sizeof(int) * TextureN, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMemcpy d_aTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
         // Create Texture Object
-        cudaResourceDesc resDesc = {};
+        hipResourceDesc resDesc = {};
         memset(&resDesc, 0, sizeof(resDesc));
-        resDesc.resType = cudaResourceTypeLinear;
+        resDesc.resType = hipResourceTypeLinear;
         resDesc.res.linear.devPtr = d_aTexture;
-        resDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+        resDesc.res.linear.desc.f = hipChannelFormatKindSigned;
         resDesc.res.linear.desc.x = 32; // bits per channel
         resDesc.res.linear.sizeInBytes = TextureN*sizeof(int);
 
-        cudaTextureDesc texDesc = {};
+        hipTextureDesc texDesc = {};
         memset(&texDesc, 0, sizeof(texDesc));
-        texDesc.readMode = cudaReadModeElementType;
+        texDesc.readMode = hipReadModeElementType;
 
-        cudaCreateTextureObject(&tex1, &resDesc, &texDesc, nullptr);
-        cudaCreateTextureObject(&tex2, &resDesc, &texDesc, nullptr);
+        hipCreateTextureObject(&tex1, &resDesc, &texDesc, nullptr);
+        hipCreateTextureObject(&tex2, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
-            printf("[CHKTWOTEXTURE.CUH]: cudaCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+        if (error_id != hipSuccess) {
+            printf("[CHKTWOTEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
@@ -248,7 +248,7 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
 
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -256,35 +256,35 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfoTexture1, (void *) durationTxt1, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMemcpy durationTxt1 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_timeinfoTexture2, (void *) durationTxt2, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMemcpy durationTxt2 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_indexTexture1, (void *) d_indexTxt1, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMemcpy d_indexTxt1 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_indexTexture2, (void *) d_indexTxt2, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMemcpy d_indexTxt2 Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -297,8 +297,8 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
 
     // Free Texture Object
     if (bindedTexture) {
-        cudaDestroyTextureObject(tex1);
-        cudaDestroyTextureObject(tex2);
+        hipDestroyTextureObject(tex1);
+        hipDestroyTextureObject(tex2);
     }
 
     bool ret = false;

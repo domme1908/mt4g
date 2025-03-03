@@ -5,9 +5,9 @@
 # include <cstdio>
 # include <cstdint>
 
-# include "cuda.h"
 
-__global__ void chkROShareTexture(cudaTextureObject_t tex, unsigned int RON, unsigned int TextureN, const unsigned int* __restrict__ myArrayReadOnly,
+
+__global__ void chkROShareTexture(hipTextureObject_t tex, unsigned int RON, unsigned int TextureN, const unsigned int* __restrict__ myArrayReadOnly,
                                   unsigned int * durationRO, unsigned int * durationTexture, unsigned int *indexRO, unsigned int *indexTexture,
                                   bool* isDisturbed) {
     *isDisturbed = false;
@@ -121,7 +121,7 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
     *durationRO = nullptr, *durationTexture = nullptr, *d_indexRO = nullptr, *d_indexTexture = nullptr, *d_aRO = nullptr;
     bool *disturb = nullptr, *d_disturb = nullptr;
     bool bindedTexture = false;
-    cudaTextureObject_t  tex = 0;
+    hipTextureObject_t  tex = 0;
 
     do {
         // Allocate Memory on Host
@@ -176,49 +176,49 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &durationRO, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc durationRO Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &durationTexture, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc durationTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexRO, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc d_indexRO Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexTexture, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc d_indexTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_aTexture, sizeof(int) * (TextureN));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc d_aTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_aRO, sizeof(unsigned int) * (RO_N));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMalloc d_aRO Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -235,7 +235,7 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
         // Copy arrays from GPU to Host
         error_id = hipMemcpy(d_aTexture, h_aTexture, sizeof(int) * TextureN, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy d_aTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -243,33 +243,33 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
         /* copy array elements from CPU to GPU */
         error_id = hipMemcpy(d_aRO, h_aRO, sizeof(unsigned int) * RO_N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy d_aRO Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
         // Create Texture Object
-        cudaResourceDesc resDesc = {};
+        hipResourceDesc resDesc = {};
         memset(&resDesc, 0, sizeof(resDesc));
-        resDesc.resType = cudaResourceTypeLinear;
+        resDesc.resType = hipResourceTypeLinear;
         resDesc.res.linear.devPtr = d_aTexture;
-        resDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+        resDesc.res.linear.desc.f = hipChannelFormatKindSigned;
         resDesc.res.linear.desc.x = 32; // bits per channel
         resDesc.res.linear.sizeInBytes = TextureN*sizeof(int);
 
-        cudaTextureDesc texDesc = {};
+        hipTextureDesc texDesc = {};
         memset(&texDesc, 0, sizeof(texDesc));
-        texDesc.readMode = cudaReadModeElementType;
+        texDesc.readMode = hipReadModeElementType;
 
-        cudaCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
+        hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
-            printf("[CHKROSHARETEXTURE.CUH]: cudaCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+        if (error_id != hipSuccess) {
+            printf("[CHKROSHARETEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
@@ -283,7 +283,7 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -292,7 +292,7 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfoRO, (void *) durationRO, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy durationRO Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -300,14 +300,14 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
         error_id = hipMemcpy((void *) h_timeinfoTexture, (void *) durationTexture, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy durationTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_indexRO, (void *) d_indexRO, sizeof(unsigned int) * LESS_SIZE, hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy d_indexRO Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -315,14 +315,14 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
         error_id = hipMemcpy((void *) h_indexTexture, (void *) d_indexTexture, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy d_indexTexture Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -335,7 +335,7 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
 
     // Free Texture Object
     if (bindedTexture) {
-        cudaDestroyTextureObject(tex);
+        hipDestroyTextureObject(tex);
     }
 
     bool ret = false;

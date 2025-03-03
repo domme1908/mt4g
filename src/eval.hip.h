@@ -19,7 +19,7 @@
 #include <experimental/filesystem>
 #include <iostream>
 #include "ErrorHandler.hip.h"
-
+#include <cstring>  
 #ifdef IsDebug
 FILE *out;
 #endif

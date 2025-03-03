@@ -328,9 +328,9 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
     {
         ptr = my_array + j;
 #ifdef IS_AMD
-        asm volatile("ld.global.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        asm volatile("ld.global.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
 #else
-        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
 #endif
         // j = my_array[j];
     }
@@ -340,14 +340,14 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
     asm volatile(
         // Declare register
         " // no-op for AMD pointer conversion\n\t"
-        ::"l"(s_index));
+        ::"r"(s_index));
 #else
     asm volatile(
         // Declare register
         " .reg .u64 smem_ptr64;\n\t"
         // Convert a c pointer into a shared memory address - I think
         " cvta.to.shared.u64 smem_ptr64, %0;\n\t"
-        ::"l"(s_index));
+        ::"r"(s_index));
 #endif
     for (int k = 0; k < MEASURE_SIZE; k++)
     {
@@ -363,7 +363,7 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
             // save GPU Clock into end_time var
             "s_memtime s4:s5;\n\t"
             // increment shared memory pointer by 4 bytes
-            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
 #else
         asm volatile(
             // save GPU Clock into start_time var
@@ -375,7 +375,7 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
             // save GPU Clock into end_time var
             "mov.u32 %2, %%clock;\n\t"
             // increment shared memory pointer by 4 bytes
-            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
 #endif
         s_tvalue[k] = end_time - start_time;
     }

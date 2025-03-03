@@ -25,17 +25,17 @@ free(missesFlow);           \
  * @return
  */
 unsigned int getNumberOfC1(int deviceID, size_t C1SizeBytes) {
-    cudaSetDevice(deviceID);
+    hipSetDevice(deviceID);
 
     int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    cudaDeviceProp deviceProp{};
+    hipGetDeviceCount(&deviceCount);
+    hipDeviceProp_t deviceProp{};
 
     if (deviceID >= deviceCount) {
         deviceID = 0;
     }
 
-    cudaGetDeviceProperties(&deviceProp, deviceID);
+    hipGetDeviceProperties(&deviceProp, deviceID);
 
     int numCores = deviceProp.maxThreadsPerBlock;
     int error = 0;

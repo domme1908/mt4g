@@ -5,7 +5,7 @@
 # include <cstdio>
 # include <cstdint>
 
-# include "cuda.h"
+
 
 __global__ void chkROShareL1Data(unsigned int RON, unsigned int DataN, const unsigned int* __restrict__ myArrayReadOnly, unsigned int* my_array,
                                   unsigned int * durationRO, unsigned int * durationData, unsigned int *indexRO, unsigned int *indexData,
@@ -50,7 +50,7 @@ __global__ void chkROShareL1Data(unsigned int RON, unsigned int DataN, const uns
     if (threadIdx.x == 1) {
         for (int k = 0; k < DataN; k++) {
             ptr = my_array + j;
-            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "l"(ptr) : "memory");
+            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
         }
     }
 
@@ -71,14 +71,14 @@ __global__ void chkROShareL1Data(unsigned int RON, unsigned int DataN, const uns
 
     if (threadIdx.x == 1) {
         asm volatile(" .reg .u64 smem_ptr64;\n\t"
-                     " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "l"(s_indexData));
+                     " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "r"(s_indexData));
         for (int k = 0; k < LESS_SIZE; k++) {
             ptr = my_array + j;
             asm volatile ("mov.u32 %0, %%clock;\n\t"
                           "ld.global.ca.u32 %1, [%3];\n\t"
                           "st.shared.u32 [smem_ptr64], %1;"
                           "mov.u32 %2, %%clock;\n\t"
-                          "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "l"(ptr) : "memory");
+                          "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
             s_tvalueData[k] = end_time-start_time;
         }
     }
@@ -170,49 +170,49 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &durationRO, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc durationRO Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &durationData, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc durationData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexRO, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc d_indexRO Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_indexData, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc d_indexData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_aData, sizeof(unsigned int) * (DataN));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc d_aData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_aRO, sizeof(unsigned int) * (RO_N));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMalloc d_aRO Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -229,14 +229,14 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
 
         // Copy arrays from Host to GPU
         error_id = hipMemcpy(d_aData, h_aData, sizeof(unsigned int) * DataN, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy d_aData Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
         }
 
         error_id = hipMemcpy(d_aRO, h_aRO, sizeof(unsigned int) * RO_N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy d_aRO Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -245,7 +245,7 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipDeviceSynchronize Error: %s\n", hipGetErrorString(error_id));
             *error = 99;
             break;
@@ -259,7 +259,7 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
 
         hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -268,7 +268,7 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfoRO, (void *) durationRO, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy durationRO Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -276,14 +276,14 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
 
         error_id = hipMemcpy((void *) h_timeinfoData, (void *) durationData, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy durationData Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) h_indexRO, (void *) d_indexRO, sizeof(unsigned int) * LESS_SIZE, hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy d_indexRO Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -291,14 +291,14 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
 
         error_id = hipMemcpy((void *) h_indexData, (void *) d_indexData, sizeof(unsigned int) * LESS_SIZE,
                               hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy d_indexData Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;

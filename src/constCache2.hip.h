@@ -5,7 +5,7 @@
 # include <cstdio>
 # include <cstdint>
 
-# include "cuda.h"
+
 # include "eval.hip.h"
 # include "GPU_resources.hip.h"
 
@@ -266,21 +266,21 @@ bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut
 
         // Allocate Memory on GPU
         error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -294,7 +294,7 @@ bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -302,20 +302,20 @@ bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut
         hipDeviceSynchronize();
 
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
         error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
         error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[CONSTCACHE2.CUH] R1: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -397,7 +397,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
 
             // Allocate Memory on GPU
             error_id = hipMalloc((void **) &duration, sizeof(unsigned int) * MEASURE_SIZE);
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: hipMalloc duration Error: %s\n", hipGetErrorString(error_id));
                 *error = 2;
                 N = sizeFlow+1;
@@ -405,7 +405,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
             }
 
             error_id = hipMalloc((void **) &d_index, sizeof(unsigned int) * MEASURE_SIZE);
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: hipMalloc d_index Error: %s\n", hipGetErrorString(error_id));
                 *error = 2;
                 N = sizeFlow+1;
@@ -413,7 +413,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
             }
 
             error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
                 *error = 2;
                 N = sizeFlow+1;
@@ -428,7 +428,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
             hipDeviceSynchronize();
 
             error_id = hipGetLastError();
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
                 *error = 5;
                 N = sizeFlow+1;
@@ -438,7 +438,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
 
             // Copy results from GPU to Host
             error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: hipMemcpy duration Error: %s\n", hipGetErrorString(error_id));
                 *error = 6;
                 N = sizeFlow+1;
@@ -446,7 +446,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
             }
 
             error_id = hipMemcpy((void *) h_index, (void *) d_index, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: hipMemcpy d_index Error: %s\n", hipGetErrorString(error_id));
                 *error = 6;
                 N = sizeFlow+1;
@@ -454,7 +454,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
             }
 
             error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-            if (error_id != cudaSuccess) {
+            if (error_id != hipSuccess) {
                 printf("[CONSTCACHE2.CUH] R2: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
                 *error = 6;
                 N = sizeFlow+1;

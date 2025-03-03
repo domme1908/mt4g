@@ -4,7 +4,7 @@
 
 # include <cstdio>
 
-# include "cuda.h"
+
 # include "../eval.hip.h"
 # include "../GPU_resources.hip.h"
 
@@ -52,14 +52,14 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
 
         // Allocate Memory on GPU Memory
         error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (N));
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L2_LINESIZE.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         error_id = hipMalloc((void **) &d_missIndex, sizeof(int) * LINE_MEASURE_SIZE);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L2_LINESIZE.CUH]: hipMalloc d_missIndex Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
@@ -73,7 +73,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
 
         // Copy elements from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L2_LINESIZE.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -81,7 +81,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
 
         // Copy zeroes to GPU array
         error_id = hipMemcpy(d_missIndex, h_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyHostToDevice);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -96,7 +96,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         hipDeviceSynchronize();
 
         error_id = hipGetLastError();
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L2_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
@@ -105,7 +105,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_missIndex, (void *) d_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyDeviceToHost);
-        if (error_id != cudaSuccess) {
+        if (error_id != hipSuccess) {
             printf("[L2_LINESIZE.CUH]: hipMemcpy d_missIndex Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
@@ -149,7 +149,7 @@ __global__ void l2_lineSize (unsigned int N, unsigned int* my_array, unsigned in
     for (int k = 0; k < LINE_MEASURE_SIZE; k++) {
         unsigned int* ptr = my_array + j;
         start_time = clock();
-        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "l"(ptr) : "memory");
+        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "r"(ptr) : "memory");
         s_index[k] = j;
         end_time = clock();
         s_tvalue[k] = end_time - start_time;
