@@ -137,7 +137,7 @@ __global__ void chkTwoCoreConst(unsigned int ConstN, unsigned int * durationTxt1
 bool launchBenchmarkTwoCoreConst(unsigned int ConstN, double *avgOut1, double* avgOut2, unsigned int* potMissesOut1,
                                  unsigned int* potMissesOut2, unsigned int **time1, unsigned int **time2, int* error,
                                  unsigned int numberOfCores, unsigned int baseCore, unsigned int testCore) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_indexTexture1 = nullptr, *h_indexTexture2 = nullptr, *h_timeinfoTexture1 = nullptr, *h_timeinfoTexture2 = nullptr,
@@ -216,7 +216,7 @@ bool launchBenchmarkTwoCoreConst(unsigned int ConstN, double *avgOut1, double* a
             *error = 2;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(numberOfCores);
@@ -224,7 +224,7 @@ bool launchBenchmarkTwoCoreConst(unsigned int ConstN, double *avgOut1, double* a
         chkTwoCoreConst<<<Dg, Db>>>( ConstN, durationTxt1, durationTxt2, d_indexTxt1,
                                      d_indexTxt2,d_disturb, baseCore, testCore);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKALLCONST.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -328,7 +328,7 @@ bool launchBenchmarkTwoCoreConst(unsigned int ConstN, double *avgOut1, double* a
         free(h_timeinfoTexture2);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

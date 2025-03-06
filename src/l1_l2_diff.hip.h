@@ -182,25 +182,25 @@ bool measureL1_L2_difference(double tol) {
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         l1_differ<<<Dg, Db>>>(d_a, durationL1, d_indexL1);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[L1_L2_DIFF.CUH]: Kernel launch/execution L1 Error: %s\n", hipGetErrorString(error_id));
             error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch L2 Kernel function
         l2_differ<<<Dg, Db>>>(d_a, durationL2, d_indexL2);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[L1_L2_DIFF.CUH] Kernel launch/execution L2 Error: %s\n", hipGetErrorString(error_id));
             error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfoL1, (void *) durationL1, sizeof(unsigned int) * diffSize,hipMemcpyDeviceToHost);
@@ -234,7 +234,7 @@ bool measureL1_L2_difference(double tol) {
             fprintf(out, "[%d]: L1=%d, L2=%d\n", h_indexL1[i], h_timeinfoL1[i], h_timeinfoL2[i]);
         }
 #endif //IsDebug
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         double avgL1 = 0.;
         double avgL2 = 0.;
@@ -292,7 +292,7 @@ bool measureL1_L2_difference(double tol) {
         exit(error);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return absDistance >= tol;
 }
 

@@ -44,13 +44,13 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
             *error = 2;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         c15_linesize <<<Dg, Db>>>(d_lineSize);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[C15_LINESIZE.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
@@ -58,17 +58,17 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
             break;
         }
         /* copy results from GPU to CPU */
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), hipMemcpyDeviceToHost);
         if (error_id != hipSuccess) {
             printf("[C15_LINESIZE.CUH]: hipMemcpy d_lineSize Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         lineSize = h_lineSize[0];
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
     } while(false);
 
     if (d_lineSize != nullptr) {
@@ -79,7 +79,7 @@ unsigned int launchC15LineSizeKernelBenchmark(int* error) {
         free(h_lineSize);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
 
     return lineSize;
 }

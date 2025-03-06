@@ -109,7 +109,7 @@ __global__ void chkTwoL1(unsigned int N, unsigned int* array1, unsigned int* arr
 }
 
 bool launchBenchmarkTwoL1(unsigned int N, double *avgOut1, double* avgOut2, unsigned int* potMissesOut1, unsigned int* potMissesOut2, unsigned int **time1, unsigned int **time2, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_index1 = nullptr, *h_index2 = nullptr, *h_timeinfo1 = nullptr, *h_timeinfo2 = nullptr, *h_a = nullptr,
@@ -229,22 +229,22 @@ bool launchBenchmarkTwoL1(unsigned int N, double *avgOut1, double* avgOut2, unsi
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
-            printf("[CHKTWOL1.CUH]: hipDeviceSynchronize Error: %s\n", hipGetErrorString(error_id));
+            printf("[CHKTWOL1.CUH]: (void)hipDeviceSynchronize Error: %s\n", hipGetErrorString(error_id));
             *error = 99;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
         dim3 Dg = dim3(1, 1, 1);
         chkTwoL1<<<Dg, Db>>>(N, d_a1, d_a2, duration1, duration2, d_index1, d_index2, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKTWOL1.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -356,7 +356,7 @@ bool launchBenchmarkTwoL1(unsigned int N, double *avgOut1, double* avgOut2, unsi
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

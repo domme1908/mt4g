@@ -182,15 +182,15 @@ bool launchTextureBenchmark(int N, int stride, double *avgOut, unsigned int *pot
         memset(&texDesc, 0, sizeof(texDesc));
         texDesc.readMode = hipReadModeElementType;
 
-        hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess)
         {
-            printf("[TEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[TEXTURE.CUH]: (void)hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
@@ -201,7 +201,7 @@ bool launchTextureBenchmark(int N, int stride, double *avgOut, unsigned int *pot
         dim3 Dg = dim3(1, 1, 1);
         texture_size<<<Dg, Db>>>(tex, size, d_duration, d_index, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess)
@@ -211,7 +211,7 @@ bool launchTextureBenchmark(int N, int stride, double *avgOut, unsigned int *pot
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_index, (void *)d_index, MEASURE_SIZE * sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -247,7 +247,7 @@ bool launchTextureBenchmark(int N, int stride, double *avgOut, unsigned int *pot
         hipDestroyTextureObject(tex);
     }
 
-    hipDeviceSynchronize();
+    (void)hipDeviceSynchronize();
 
     // Free Memory on GPU
     if (d_a != nullptr)

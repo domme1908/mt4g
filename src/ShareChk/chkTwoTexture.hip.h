@@ -103,7 +103,7 @@ __global__ void chkTwoTexture(hipTextureObject_t tex1, hipTextureObject_t tex2, 
 }
 
 bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double* avgOutTxt2, unsigned int* potMissesOutTxt1, unsigned int* potMissesOutTxt2, unsigned int **timeTxt1, unsigned int **timeTxt2, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     int* h_aTexture = nullptr, *d_aTexture = nullptr;
@@ -226,27 +226,27 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
         memset(&texDesc, 0, sizeof(texDesc));
         texDesc.readMode = hipReadModeElementType;
 
-        hipCreateTextureObject(&tex1, &resDesc, &texDesc, nullptr);
-        hipCreateTextureObject(&tex2, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex1, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex2, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
-            printf("[CHKTWOTEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[CHKTWOTEXTURE.CUH]: (void)hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
         dim3 Dg = dim3(1, 1, 1);
         chkTwoTexture<<<Dg, Db>>>(tex1, tex2, TextureN, durationTxt1, durationTxt2, d_indexTxt1, d_indexTxt2, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKTWOTEXTURE.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -361,7 +361,7 @@ bool launchBenchmarkTwoTexture(unsigned int TextureN, double *avgOutTxt1, double
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

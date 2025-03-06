@@ -122,28 +122,28 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         memset(&texDesc, 0, sizeof(texDesc));
         texDesc.readMode = hipReadModeElementType;
 
-        hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess)
         {
-            printf("[TEXTURE_LAT.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[TEXTURE_LAT.CUH]: (void)hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function with clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         texture_lat<<<Dg, Db>>>(tex, d_a, N, d_time);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess)
@@ -152,7 +152,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -162,7 +162,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         unsigned int lat = h_time[0];
 #ifdef IsDebug
@@ -173,7 +173,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         // Launch kernel function with globaltimer
         texture_lat_globaltimer<<<Dg, Db>>>(tex, d_a, N, d_time);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess)
@@ -182,7 +182,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *)h_time, (void *)d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -192,7 +192,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         lat = h_time[0];
 #ifdef IsDebug
@@ -229,7 +229,7 @@ LatencyTuple launchTextureLatKernelBenchmark(int N, int stride, int *error)
         free(h_time);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
 
     return result;
 }

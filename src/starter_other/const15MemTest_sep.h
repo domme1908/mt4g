@@ -298,14 +298,14 @@ bool launchConst15KernelBenchmark(double *avgOut, unsigned int* potMissesOut, un
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch kernel function using clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         const15_test <<<Dg, Db>>>(duration, d_index, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -313,7 +313,7 @@ bool launchConst15KernelBenchmark(double *avgOut, unsigned int* potMissesOut, un
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE, hipMemcpyDeviceToHost);
@@ -335,7 +335,7 @@ bool launchConst15KernelBenchmark(double *avgOut, unsigned int* potMissesOut, un
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // In Debug Mode the correct cache usage can be checked in this file (no other latencies)
         createOutputFile(constArrSize, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "Const15_");
@@ -373,7 +373,7 @@ bool launchConst15KernelBenchmark(double *avgOut, unsigned int* potMissesOut, un
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

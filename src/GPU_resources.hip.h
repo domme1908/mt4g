@@ -209,7 +209,7 @@ unsigned int wrapperLineSize(unsigned int cacheSizeBytes, bool (*launcher)(int, 
         }
     }
 
-    hipDeviceSynchronize();
+    (void)hipDeviceSynchronize();
     lineSize = getMostValueInArray(h_missIndex, MEASURE_SIZE) * 4;
 
     free(h_missIndex);

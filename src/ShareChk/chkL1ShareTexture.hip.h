@@ -113,7 +113,7 @@ bool launchL1BenchmarkReferenceValue(int N, int stride, double *avgOut, unsigned
 
 bool launchBenchmarkChkL1ShareTexture(unsigned int L1Data_N, unsigned int TextureN, double *avgOutL1Data, double* avgOutTexture, unsigned int* potMissesOutL1Data,
                                       unsigned int* potMissesOutTexture, unsigned int **timeL1Data, unsigned int **timeTexture, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     int *h_aTexture = nullptr, *d_aTexture = nullptr;
@@ -262,18 +262,18 @@ bool launchBenchmarkChkL1ShareTexture(unsigned int L1Data_N, unsigned int Textur
         memset(&texDesc, 0, sizeof(texDesc));
         texDesc.readMode = hipReadModeElementType;
 
-        hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
-            printf("[CHKL1SHARETEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[CHKL1SHARETEXTURE.CUH]: (void)hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
@@ -281,7 +281,7 @@ bool launchBenchmarkChkL1ShareTexture(unsigned int L1Data_N, unsigned int Textur
         chkL1ShareTexture<<<Dg, Db>>>(tex, L1Data_N, TextureN, d_aL1, durationL1, durationTexture,
                                       d_indexL1, d_indexTexture,d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKL1SHARETEXTURE.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -404,7 +404,7 @@ bool launchBenchmarkChkL1ShareTexture(unsigned int L1Data_N, unsigned int Textur
         free(h_timeinfoTexture);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

@@ -129,14 +129,14 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         main_size_test <<<Dg, Db>>>(d_a, duration, d_index, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -144,7 +144,7 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
@@ -167,7 +167,7 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "Main_");
     } while(false);
@@ -212,7 +212,7 @@ bool launchMainKernelBenchmark(int N, int stride, double *avgOut, unsigned int* 
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

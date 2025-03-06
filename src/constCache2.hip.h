@@ -162,7 +162,7 @@ CacheSizeResult sizeL1() {
         }
     }
     FreeSizeC1()
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return size;
 }
 
@@ -235,7 +235,7 @@ CacheSizeResult sizeL15() {
 }
 
 bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut, unsigned int **time, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_index = nullptr, *h_timeinfo = nullptr, *duration = nullptr, *d_index = nullptr;
@@ -285,13 +285,13 @@ bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut
             *error = 2;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         constant_size<<<Dg, Db>>>(N, duration, d_index, d_disturb);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -299,7 +299,7 @@ bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
         if (error_id != hipSuccess) {
@@ -358,7 +358,7 @@ bool launchConstantBenchmarkR1(int N, double *avgOut, unsigned int* potMissesOut
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 
@@ -419,13 +419,13 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
                 N = sizeFlow+1;
                 break;
             }
-            hipDeviceSynchronize();
+            (void)hipDeviceSynchronize();
 
             // Launch Kernel function
             dim3 Db = dim3(1);
             dim3 Dg = dim3(1, 1, 1);
             constant_size<<<Dg, Db>>>(begin + N * arrayIncrease, duration, d_index, d_disturb);
-            hipDeviceSynchronize();
+            (void)hipDeviceSynchronize();
 
             error_id = hipGetLastError();
             if (error_id != hipSuccess) {
@@ -434,7 +434,7 @@ void launchConstantBenchmarkR2(double *avgOut, unsigned int* potMissesOut, unsig
                 N = sizeFlow+1;
                 break;
             }
-            hipDeviceSynchronize();
+            (void)hipDeviceSynchronize();
 
             // Copy results from GPU to Host
             error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);

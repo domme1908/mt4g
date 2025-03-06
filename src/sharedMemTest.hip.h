@@ -102,14 +102,14 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         shared_test <<<Dg, Db>>>(duration, d_index, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -117,7 +117,7 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * LESS_SIZE,hipMemcpyDeviceToHost);
@@ -140,7 +140,7 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         createOutputFile(sharedTestSize, LESS_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "Shared_");
     } while(false);
@@ -177,7 +177,7 @@ bool launchSharedKernelBenchmark(double *avgOut, unsigned int* potMissesOut, uns
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

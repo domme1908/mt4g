@@ -129,7 +129,7 @@ __global__ void chkTwoCoreTexture(hipTextureObject_t tex1, hipTextureObject_t te
  */
 bool launchBenchmarkTwoCoreTexture(unsigned int TextureN, double *avgOut1, double* avgOut2, unsigned int* potMissesOut1, unsigned int* potMissesOut2,
                                    unsigned int **time1, unsigned int **time2, int* error, unsigned int numberOfCores, unsigned int baseCore, unsigned int testCore) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     int *h_a = nullptr, *d_a = nullptr;
@@ -253,20 +253,20 @@ bool launchBenchmarkTwoCoreTexture(unsigned int TextureN, double *avgOut1, doubl
         memset(&texDesc, 0, sizeof(texDesc));
         texDesc.readMode = hipReadModeElementType;
 
-        hipCreateTextureObject(&tex1, &resDesc, &texDesc, nullptr);
-        hipCreateTextureObject(&tex2, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex1, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex2, &resDesc, &texDesc, nullptr);
         textureBinded = true;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
-            printf("[CHKALLTEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[CHKALLTEXTURE.CUH]: (void)hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             textureBinded = false;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(numberOfCores);
@@ -274,7 +274,7 @@ bool launchBenchmarkTwoCoreTexture(unsigned int TextureN, double *avgOut1, doubl
         chkTwoCoreTexture<<<Dg, Db>>>(tex1, tex2, TextureN, duration1, duration2, d_index1, d_index2, d_disturb, baseCore,
                                       testCore);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKALLTEXTURE.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -392,7 +392,7 @@ bool launchBenchmarkTwoCoreTexture(unsigned int TextureN, double *avgOut1, doubl
         free(h_timeinfo2);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

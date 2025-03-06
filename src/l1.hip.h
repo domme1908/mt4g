@@ -7,34 +7,38 @@
 #include <hip/hip_runtime.h>
 #include "eval.hip.h"
 #include "GPU_resources.hip.h"
-# include "utils.h"
+#include "utils.h"
 
 __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed);
 
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error);
 char unitsByteLocal[4][4] = {"B", "KiB", "MiB", "GiB"};
 
-const char* formatSize(double* val, size_t original) {
+const char *formatSize(double *val, size_t original)
+{
     int unitIndex = 0;
 
-    if (original > 1024 * 1024 * 1024) {
+    if (original > 1024 * 1024 * 1024)
+    {
         original = original >> 10;
         ++unitIndex;
     }
 
-    double result = (double) original;
+    double result = (double)original;
 
-    if (result > 1000.) {
+    if (result > 1000.)
+    {
         result = result / 1024.;
         ++unitIndex;
     }
 
-    if (result > 1000.) {
+    if (result > 1000.)
+    {
         result = result / 1024.;
         ++unitIndex;
     }
 
-    const char* unit = unitsByteLocal[unitIndex];
+    const char *unit = unitsByteLocal[unitIndex];
     *val = result;
     return unit;
 }
@@ -84,7 +88,7 @@ CacheSizeResult measure_L1()
     printf("measure_L1 time: %f ms\n", std::chrono::duration<double>(endTime - startTime).count() * 1000.0);
     double size;
     size_t original = result.CacheSize;
-    const char* unit = formatSize(&size, original);
+    const char *unit = formatSize(&size, original);
     printf("Size %f%s\n", size, unit);
     printf("Stride was %d\n", stride);
     printf("ArrayIncrease was %d\n", arrayIncrease);
@@ -328,7 +332,10 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
     {
         ptr = my_array + j;
 #ifdef IS_AMD
-        asm volatile("ld.global.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+        asm volatile(
+            "global_load_dword %0, %1, off\n\t"
+            : "=v"(j)
+            : "v"(ptr));
 #else
         asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
 #endif
@@ -337,33 +344,44 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
 
     // Second round
 #ifdef IS_AMD
+    uint32_t v_smem_ptr;
     asm volatile(
-        // Declare register
-        " // no-op for AMD pointer conversion\n\t"
-        ::"r"(s_index));
+        "v_mov_b32 %0, 0\n\t" // Initialize shared memory pointer in VGPR
+        : "=v"(v_smem_ptr)    // Output: VGPR for LDS pointer
+    );
 #else
     asm volatile(
         // Declare register
         " .reg .u64 smem_ptr64;\n\t"
         // Convert a c pointer into a shared memory address - I think
-        " cvta.to.shared.u64 smem_ptr64, %0;\n\t"
-        ::"r"(s_index));
+        " cvta.to.shared.u64 smem_ptr64, %0;\n\t" ::"r"(s_index));
 #endif
     for (int k = 0; k < MEASURE_SIZE; k++)
     {
         ptr = my_array + j;
 #ifdef IS_AMD
-        asm volatile(
-            // save GPU Clock into start_time var
-            "s_memtime s2:s3;\n\t"
-            // load ptr into register
-            "ld.global.u32 %1, [%3];\n\t"
-            // write data to shared memory
-            "st.shared.u32 [smem_ptr64], %1;"
-            // save GPU Clock into end_time var
-            "s_memtime s4:s5;\n\t"
-            // increment shared memory pointer by 4 bytes
-            "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
+        uint32_t start_time_lo, start_time_hi;
+        uint64_t start_time, end_time;
+        uint32_t j;          
+        uint32_t v_smem_ptr;
+
+        // Read GPU clock into two 32-bit registers
+        asm volatile("s_memtime %0" : "=r"(start_time));
+
+        // Load from global memory (flat memory addressing)
+        asm volatile("flat_load_dword %0, %1\n\t" : "=v"(j) : "v"(ptr));
+
+        // Initialize VGPR LDS pointer (INSTEAD of SGPR)
+        asm volatile("v_mov_b32 %0, 0\n\t" : "=v"(v_smem_ptr));
+
+        // Store to LDS (shared memory)
+        asm volatile("ds_write_b32 %0, %1\n\t" : : "v"(v_smem_ptr), "v"(j));
+
+        // Read GPU clock again
+        asm volatile("s_memtime %0" : "=r"(end_time));
+
+        // Increment shared memory pointer
+        asm volatile("v_add_u32 %0, %0, 4\n\t" : "+v"(v_smem_ptr)); 
 #else
         asm volatile(
             // save GPU Clock into start_time var

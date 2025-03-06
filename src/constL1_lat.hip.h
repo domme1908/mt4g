@@ -67,21 +67,21 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
             *error = 2;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function with clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         constL1_lat <<<Dg, Db>>>(N, d_time);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CONSTL1_LAT.CUH]: Kernel launch/execution with clock Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -90,26 +90,26 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         unsigned int lat = h_time[0];
 #ifdef IsDebug
         fprintf(out, "Measured Const L1 avg latencyCycles is %d cycles\n", lat);
 #endif //IsDebug
         result.latencyCycles = lat;
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function with globaltimer
         constL1_lat_globaltimer<<<Dg, Db>>>(N, d_time);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CONSTL1_LAT.CUH]: Kernel launch/execution with globaltimer Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -119,7 +119,7 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         lat = h_time[0];
 #ifdef IsDebug
         fprintf(out, "Measured Const L1 avg latencyCycles is %d nanoseconds\n", lat);
@@ -137,7 +137,7 @@ LatencyTuple launchConstL1LatKernelBenchmark(int N, int* error) {
         free(h_time);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return result;
 }
 

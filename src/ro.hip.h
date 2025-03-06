@@ -57,7 +57,7 @@ CacheSizeResult measure_ReadOnly() {
 
 
 bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,*lines = nullptr,
@@ -157,14 +157,14 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         RO_size<<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -172,7 +172,7 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
@@ -196,7 +196,7 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         if (!*disturb)
             createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "RO_");
@@ -238,7 +238,7 @@ bool launchROBenchmark(int N, int stride, double *avgOut, unsigned int* potMisse
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

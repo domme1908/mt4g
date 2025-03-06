@@ -87,13 +87,13 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         l2_lineSize <<<Dg, Db>>>(N, d_a, d_missIndex);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -101,7 +101,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_missIndex, (void *) d_missIndex, sizeof(unsigned int) * LINE_MEASURE_SIZE, hipMemcpyDeviceToHost);
@@ -110,11 +110,11 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         //most frequent distance between spikes in latency is the cache line size (first element of each cahce line getting loaded)
         lineSize = getMostValueInArray(h_missIndex, LINE_MEASURE_SIZE) * sizeof(unsigned int);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
     } while(false);
 
     // Free Memory on GPU
@@ -135,7 +135,7 @@ unsigned int launchL2LineSizeAltKernelBenchmark(unsigned int N, int stride, int*
         free(h_missIndex);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
 
     return lineSize;
 }

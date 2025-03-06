@@ -119,7 +119,7 @@ bool launchConstBenchmarkReferenceValue(int N, double *avgOut, unsigned int* pot
 
 bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, double *avgOutConst, double* avgOutData, unsigned int* potMissesOutConst,
                                       unsigned int* potMissesOutData, unsigned int **timeConst, unsigned int **timeData, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_indexConst = nullptr, *h_indexData = nullptr, *h_timeinfoConst = nullptr, *h_timeinfoData = nullptr, *h_a = nullptr,
@@ -225,14 +225,14 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
             *error = 3;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
         dim3 Dg = dim3(1, 1, 1);
         chkConstShareData<<<Dg, Db>>>(ConstN, DataN, d_a, durationConst, durationData, d_indexConst, d_indexData, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKCONSTSHAREL1DATA.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -336,7 +336,7 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

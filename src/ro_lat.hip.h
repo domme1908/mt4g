@@ -96,14 +96,14 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function with clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         ro_lat <<<Dg, Db>>>(d_a, N, d_time);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -111,7 +111,7 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -120,7 +120,7 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         unsigned int lat = h_time[0];
 #ifdef IsDebug
@@ -128,12 +128,12 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
 #endif //IsDebug
         result.latencyCycles = lat;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function with globaltimer
         ro_lat_globaltimer<<<Dg, Db>>>(d_a, N, d_time);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -141,7 +141,7 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_time, (void *) d_time, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -150,7 +150,7 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         lat = h_time[0];
 #ifdef IsDebug
@@ -177,7 +177,7 @@ LatencyTuple launchROLatKernelBenchmark(int N, int stride, int* error) {
         free(h_time);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return result;
 }
 

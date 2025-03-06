@@ -113,7 +113,7 @@ bool launchTextureBenchmarkReferenceValue(int N, int stride, double *avgOut, uns
 
 bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, double *avgOutRO, double* avgOutTexture, unsigned int* potMissesOutRO,
                                       unsigned int* potMissesOutTexture, unsigned int **timeRO, unsigned int **timeTexture, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     int *h_aTexture = nullptr, *d_aTexture = nullptr;
@@ -262,26 +262,26 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
         memset(&texDesc, 0, sizeof(texDesc));
         texDesc.readMode = hipReadModeElementType;
 
-        hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
+        (void)hipCreateTextureObject(&tex, &resDesc, &texDesc, nullptr);
         bindedTexture = true;
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
-            printf("[CHKROSHARETEXTURE.CUH]: hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
+            printf("[CHKROSHARETEXTURE.CUH]: (void)hipCreateTextureObject Error: %s\n", hipGetErrorString(error_id));
             *error = 4;
             bindedTexture = false;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
         dim3 Dg = dim3(1, 1, 1);
         chkROShareTexture<<<Dg, Db>>>(tex, RO_N, TextureN, d_aRO, durationRO, durationTexture, d_indexRO, d_indexTexture, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKROSHARETEXTURE.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -406,7 +406,7 @@ bool launchBenchmarkChkROShareTexture(unsigned int RO_N, unsigned int TextureN, 
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

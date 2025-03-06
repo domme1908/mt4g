@@ -576,7 +576,7 @@ int main(int argc, char *argv[]){
 #endif //IsDebug
         overallResults[L1] = L1_results;
 
-        hipDeviceReset();
+        (void)hipDeviceReset();
     }
 
     if (l2) {
@@ -587,7 +587,7 @@ int main(int argc, char *argv[]){
             L2_results = executeL2DataCacheChecks(cudaInfo.L2CacheSize);
         overallResults[L2] = L2_results;
 
-        hipDeviceReset();
+        (void)hipDeviceReset();
     }
 
     if (txt) {
@@ -598,7 +598,7 @@ int main(int argc, char *argv[]){
 #endif //IsDebug
         overallResults[Texture] = textureResults;
 
-        hipDeviceReset();
+        (void)hipDeviceReset();
     }
 
     if (ro) {
@@ -609,7 +609,7 @@ int main(int argc, char *argv[]){
 #endif //IsDebug
         overallResults[RO] = ReadOnlyResults;
 
-        hipDeviceReset();
+        (void)hipDeviceReset();
     }
 
     if (constant) {
@@ -617,7 +617,7 @@ int main(int argc, char *argv[]){
         Tuple<CacheResults> results = executeConstantCacheChecks(deviceID);
         overallResults[Const1] = results.first;
         overallResults[Const2] = results.second;
-        hipDeviceReset();
+        (void)hipDeviceReset();
     }
 
     double TxtDistance = 0.;
@@ -683,7 +683,7 @@ int main(int argc, char *argv[]){
                 L1ShareConst = false;
             }
 
-            hipDeviceReset();
+            (void)hipDeviceReset();
         }
 
         if (ReadOnlyResults.benchmarked) {
@@ -705,7 +705,7 @@ int main(int argc, char *argv[]){
                 ROShareL1Data = false;
             }
 
-            hipDeviceReset();
+            (void)hipDeviceReset();
         }
 
         if (textureResults.benchmarked) {
@@ -749,7 +749,7 @@ int main(int argc, char *argv[]){
             ROShareTexture = false;
         }
 
-        hipDeviceReset();
+        (void)hipDeviceReset();
     }
 
 #ifdef IsDebug

@@ -60,6 +60,7 @@ if (HIP_FOUND)
         add_definitions(-DIsDebug)
     endif()
 
+    add_definitions(-DIS_AMD)
 
 
     install(TARGETS mt4g c15 DESTINATION bin)

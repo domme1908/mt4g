@@ -148,14 +148,14 @@ bool launchL2LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
             *error = 3;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function with clock function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         l2_lat_test <<<Dg, Db>>>(d_a, N, duration, d_index, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -163,7 +163,7 @@ bool launchL2LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_timeinfo, (void *) duration, sizeof(unsigned int) * MEASURE_SIZE,hipMemcpyDeviceToHost);
@@ -186,7 +186,7 @@ bool launchL2LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "L2Lat_");
 
@@ -233,7 +233,7 @@ bool launchL2LatTestKernelBenchmark(int N, int stride, double *avgOut, unsigned 
         free(h_index);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

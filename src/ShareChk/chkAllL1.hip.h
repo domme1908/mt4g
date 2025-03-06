@@ -135,7 +135,7 @@ __global__ void chkTwoCoreL1(unsigned int N, unsigned int* array1, unsigned int*
  */
 bool launchBenchmarkTwoCoreL1(unsigned int arraySize, double *avgOut1, double* avgOut2, unsigned int* potMissesOut1, unsigned int* potMissesOut2, unsigned int **time1, unsigned int **time2, int* error,
                               unsigned int numberOfCores, unsigned int baseCore, unsigned int testCore) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_index1 = nullptr, *h_index2 = nullptr, *h_timeinfo1 = nullptr, *h_timeinfo2 = nullptr, *h_a = nullptr,
@@ -255,7 +255,7 @@ bool launchBenchmarkTwoCoreL1(unsigned int arraySize, double *avgOut1, double* a
             *error = 3;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -263,14 +263,14 @@ bool launchBenchmarkTwoCoreL1(unsigned int arraySize, double *avgOut1, double* a
             *error = 99;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(numberOfCores);
         dim3 Dg = dim3(1, 1, 1);
         chkTwoCoreL1<<<Dg, Db>>>(arraySize, d_a1, d_a2, duration1, duration2, d_index1, d_index2, d_disturb, baseCore, testCore);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKALLL1.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -382,7 +382,7 @@ bool launchBenchmarkTwoCoreL1(unsigned int arraySize, double *avgOut1, double* a
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

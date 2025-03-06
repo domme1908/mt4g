@@ -110,7 +110,7 @@ __global__ void chkROShareL1Data(unsigned int RON, unsigned int DataN, const uns
 
 bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, double *avgOutRO, double* avgOutData, unsigned int* potMissesOutRO,
                                      unsigned int* potMissesOutData, unsigned int **timeRO, unsigned int **timeData, int* error) {
-    hipDeviceReset();
+    (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_indexRO = nullptr, *h_indexData = nullptr, *h_timeinfoRO = nullptr, *h_timeinfoData = nullptr, *h_aData = nullptr, *h_aRO = nullptr,
@@ -242,22 +242,22 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
             break;
         }
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
-            printf("[CHKROSHAREL1DATA.CUH]: hipDeviceSynchronize Error: %s\n", hipGetErrorString(error_id));
+            printf("[CHKROSHAREL1DATA.CUH]: (void)hipDeviceSynchronize Error: %s\n", hipGetErrorString(error_id));
             *error = 99;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(2);
         dim3 Dg = dim3(1, 1, 1);
         chkROShareL1Data<<<Dg, Db>>>(RO_N, DataN, d_aRO, d_aData, durationRO, durationData, d_indexRO, d_indexData, d_disturb);
 
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
             printf("[CHKROSHAREL1DATA.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
@@ -376,7 +376,7 @@ bool launchBenchmarkChkROShareL1Data(unsigned int RO_N, unsigned int DataN, doub
         }
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
     return ret;
 }
 

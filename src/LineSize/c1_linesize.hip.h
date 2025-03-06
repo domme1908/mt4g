@@ -48,13 +48,13 @@ unsigned int launchC1LineSizeKernelBenchmark(int upperLimit, int* error) {
             *error = 2;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Launch Kernel function
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
         c1_linesize <<<Dg, Db>>>(upperLimit, d_lineSize);
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess) {
@@ -62,7 +62,7 @@ unsigned int launchC1LineSizeKernelBenchmark(int upperLimit, int* error) {
             *error = 5;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         // Copy results from GPU to Host
         error_id = hipMemcpy((void *) h_lineSize, (void *) d_lineSize, sizeof(unsigned int), hipMemcpyDeviceToHost);
@@ -71,10 +71,10 @@ unsigned int launchC1LineSizeKernelBenchmark(int upperLimit, int* error) {
             *error = 6;
             break;
         }
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
 
         lineSize = h_lineSize[0];
-        hipDeviceSynchronize();
+        (void)hipDeviceSynchronize();
     } while(false);
 
     if (d_lineSize != nullptr) {
@@ -85,7 +85,7 @@ unsigned int launchC1LineSizeKernelBenchmark(int upperLimit, int* error) {
         free(h_lineSize);
     }
 
-    hipDeviceReset();
+    (void)hipDeviceReset();
 
     return lineSize;
 }
