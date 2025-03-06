@@ -217,12 +217,19 @@ __global__ void l2_lat_globaltimer(unsigned int *my_array, int array_length, uns
         "s_mov_b32 %1, s1\n\t"
         : "=r"(start_lo), "=r"(start_hi)
         :
-        : "s0", "s1"
-    );
+        : "s0", "s1");
     start_time = ((unsigned long long)start_hi << 32) | start_lo;
     for (int k = 0; k < iter; k++)
     {
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off\n\t"
+            : "=v"(j)
+            : "v"(my_array + j));
+
+#else
         asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "r"(my_array + j) : "memory");
+#endif
     }
     s_index[0] = j;
     asm volatile(
@@ -231,8 +238,7 @@ __global__ void l2_lat_globaltimer(unsigned int *my_array, int array_length, uns
         "s_mov_b32 %1, s1\n\t"
         : "=r"(end_lo), "=r"(end_hi)
         :
-        : "s0", "s1"
-    );
+        : "s0", "s1");
     end_time = ((unsigned long long)end_hi << 32) | end_lo;
 
     unsigned int diff = (unsigned int)(end_time - start_time);
@@ -257,7 +263,15 @@ __global__ void l2_lat(unsigned int *my_array, int array_length, unsigned int *t
     start_time = clock();
     for (int k = 0; k < iter; k++)
     {
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off\n\t"
+            : "=v"(j)
+            : "v"(my_array + j));
+
+#else
         asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "r"(my_array + j) : "memory");
+#endif
     }
     s_index[0] = j;
     end_time = clock();

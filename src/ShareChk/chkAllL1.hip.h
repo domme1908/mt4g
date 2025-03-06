@@ -53,7 +53,14 @@ __global__ void chkTwoCoreL1(unsigned int N, unsigned int* array1, unsigned int*
     if (threadIdx.x == baseCore) {
         for (int k = 0; k < N; k++) {
             ptr = array1 + j;
-            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off"
+            : "=v"(j)
+            : "v"(ptr));
+#else
+        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#endif
         }
     }
 
@@ -62,7 +69,14 @@ __global__ void chkTwoCoreL1(unsigned int N, unsigned int* array1, unsigned int*
     if (threadIdx.x == testCore) {
         for (int k = 0; k < N; k++) {
             ptr = array2 + j;
-            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off"
+            : "=v"(j)
+            : "v"(ptr));
+#else
+        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#endif
         }
     }
 
@@ -73,7 +87,14 @@ __global__ void chkTwoCoreL1(unsigned int N, unsigned int* array1, unsigned int*
         for (int k = 0; k < LESS_SIZE; k++) {
             ptr = array1 + j;
             start_time = clock();
-            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off"
+            : "=v"(j)
+            : "v"(ptr));
+#else
+        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#endif
             s_index1[k] = j;
             end_time = clock();
             s_tvalue1[k] = (end_time - start_time);
@@ -86,7 +107,14 @@ __global__ void chkTwoCoreL1(unsigned int N, unsigned int* array1, unsigned int*
         for (int k = 0; k < LESS_SIZE; k++) {
             ptr = array2 + j;
             start_time = clock();
-            asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off"
+            : "=v"(j)
+            : "v"(ptr));
+#else
+        asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#endif
             s_index2[k] = j;
             end_time = clock();
             s_tvalue2[k] = (end_time - start_time);

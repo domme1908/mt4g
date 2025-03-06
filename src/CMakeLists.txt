@@ -58,7 +58,9 @@ if (HIP_FOUND)
 
     if ("${IsDebug}" STREQUAL "1")
         add_definitions(-DIsDebug)
+
     endif()
+    add_definitions(-ferror-limit=1000)
 
     add_definitions(-DIS_AMD)
 

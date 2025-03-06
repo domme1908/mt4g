@@ -2,16 +2,15 @@
 #ifndef CUDATEST_CONSTSHAREDATA
 #define CUDATEST_CONSTSHAREDATA
 
-# include <cstdio>
-# include <cstdint>
+#include <cstdio>
+#include <cstdint>
 
-
-
-__global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsigned int * my_array, unsigned int * durationConst, unsigned int * durationData, unsigned int *indexConst, unsigned int *indexData,
-                                  bool* isDisturbed) {
+__global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsigned int *my_array, unsigned int *durationConst, unsigned int *durationData, unsigned int *indexConst, unsigned int *indexData,
+                                  bool *isDisturbed)
+{
     *isDisturbed = false;
 
-    unsigned int start_time, end_time;
+    uint64_t start_time, end_time;
     unsigned int j = 0;
     __shared__ long long s_tvalueConst[LESS_SIZE];
     __shared__ unsigned int s_indexConst[LESS_SIZE];
@@ -20,8 +19,10 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
 
     __syncthreads();
 
-    if (threadIdx.x == 0) {
-        for (int k = 0; k < LESS_SIZE; k++) {
+    if (threadIdx.x == 0)
+    {
+        for (int k = 0; k < LESS_SIZE; k++)
+        {
             s_indexConst[k] = 0;
             s_tvalueConst[k] = 0;
         }
@@ -29,18 +30,22 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
 
     __syncthreads();
 
-    if (threadIdx.x == 1) {
-        for(int k=0; k<LESS_SIZE; k++){
+    if (threadIdx.x == 1)
+    {
+        for (int k = 0; k < LESS_SIZE; k++)
+        {
             s_indexData[k] = 0;
             s_tvalueData[k] = 0;
         }
     }
 
-    unsigned int* ptr;
+    unsigned int *ptr;
     __syncthreads();
 
-    if (threadIdx.x == 0) {
-        for (int k = 0; k < ConstN; k++) {
+    if (threadIdx.x == 0)
+    {
+        for (int k = 0; k < ConstN; k++)
+        {
             j = arr[j];
             j = j % ConstN;
         }
@@ -48,17 +53,28 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
 
     __syncthreads();
 
-    if (threadIdx.x == 1) {
-        for (int k = 0; k < DataN; k++) {
+    if (threadIdx.x == 1)
+    {
+        for (int k = 0; k < DataN; k++)
+        {
             ptr = my_array + j;
+#ifdef IS_AMD
+            asm volatile(
+                "global_load_dword %0, %1, off"
+                : "=v"(j)
+                : "v"(ptr));
+#else
             asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#endif
         }
     }
 
     __syncthreads();
 
-    if (threadIdx.x == 0) {
-        for (int k = 0; k < LESS_SIZE; k++) {
+    if (threadIdx.x == 0)
+    {
+        for (int k = 0; k < LESS_SIZE; k++)
+        {
             start_time = clock();
             j = arr[j];
             s_indexConst[k] = j;
@@ -70,27 +86,62 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
 
     __syncthreads();
 
-    if (threadIdx.x == 1) {
+    if (threadIdx.x == 1)
+    {
+#ifdef IS_AMD
+        uint64_t smem_ptr64 = 0; // Initialize LDS pointer
+        // Initialize the LDS pointer to 0
+        asm volatile("s_mov_b64 %0, 0\n\t" : "=s"(smem_ptr64));
+#else
         asm volatile(" .reg .u64 smem_ptr64;\n\t"
-                     " cvta.to.shared.u64 smem_ptr64, %0;\n\t" :: "r"(s_indexData));
-        for (int k = 0; k < LESS_SIZE; k++) {
+                     " cvta.to.shared.u64 smem_ptr64, %0;\n\t" ::"r"(s_indexData));
+#endif
+        for (int k = 0; k < LESS_SIZE; k++)
+        {
             ptr = my_array + j;
-            asm volatile ("mov.u32 %0, %%clock;\n\t"
-                          "ld.global.ca.u32 %1, [%3];\n\t"
-                          "st.shared.u32 [smem_ptr64], %1;"
-                          "mov.u32 %2, %%clock;\n\t"
-                          "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
-            s_tvalueData[k] = end_time-start_time;
+#ifdef IS_AMD
+            uint32_t j;
+            uint32_t v_smem_ptr;
+
+            // Read GPU clock into two 32-bit registers
+            asm volatile("s_memtime %0" : "=r"(start_time));
+
+            // Load from global memory (flat memory addressing)
+            asm volatile("flat_load_dword %0, %1\n\t" : "=v"(j) : "v"(ptr));
+
+            // Initialize VGPR LDS pointer (INSTEAD of SGPR)
+            asm volatile("v_mov_b32 %0, 0\n\t" : "=v"(v_smem_ptr));
+
+            // Store to LDS (shared memory)
+            asm volatile("ds_write_b32 %0, %1\n\t" : : "v"(v_smem_ptr), "v"(j));
+
+            // Read GPU clock again
+            asm volatile("s_memtime %0" : "=r"(end_time));
+
+            // Increment shared memory pointer
+            asm volatile("v_add_u32 %0, %0, 4\n\t" : "+v"(v_smem_ptr));
+#else
+            asm volatile(
+                "mov.u32 %0, %%clock;\n\t"
+                "ld.global.ca.u32 %1, [%3];\n\t"
+                "st.shared.u32 [smem_ptr64], %1;"
+                "mov.u32 %2, %%clock;\n\t"
+                "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
+#endif
+            s_tvalueData[k] = end_time - start_time;
         }
     }
 
     __syncthreads();
 
-    if (threadIdx.x == 0) {
-        for (int k = 0; k < LESS_SIZE; k++) {
+    if (threadIdx.x == 0)
+    {
+        for (int k = 0; k < LESS_SIZE; k++)
+        {
             indexConst[k] = s_indexConst[k];
             durationConst[k] = s_tvalueConst[k];
-            if (durationConst[k] > 3000) {
+            if (durationConst[k] > 3000)
+            {
                 *isDisturbed = true;
             }
         }
@@ -98,129 +149,150 @@ __global__ void chkConstShareData(unsigned int ConstN, unsigned int DataN, unsig
 
     __syncthreads();
 
-    if (threadIdx.x == 1) {
-        for(int k=0; k<LESS_SIZE; k++){
-            indexData[k]= s_indexData[k];
+    if (threadIdx.x == 1)
+    {
+        for (int k = 0; k < LESS_SIZE; k++)
+        {
+            indexData[k] = s_indexData[k];
             durationData[k] = s_tvalueData[k];
-            if (durationData[k] > 3000) {
+            if (durationData[k] > 3000)
+            {
                 *isDisturbed = true;
             }
         }
     };
 }
 
-bool launchL1DataBenchmarkReferenceValue(int N, int stride, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
+bool launchL1DataBenchmarkReferenceValue(int N, int stride, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error)
+{
     return launchL1KernelBenchmark(N, stride, avgOut, potMissesOut, time, error);
 }
 
-bool launchConstBenchmarkReferenceValue(int N, double *avgOut, unsigned int* potMissesOut, unsigned int** time, int* error) {
+bool launchConstBenchmarkReferenceValue(int N, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error)
+{
     return launchConstantBenchmarkR1(N, avgOut, potMissesOut, time, error);
 }
 
-bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, double *avgOutConst, double* avgOutData, unsigned int* potMissesOutConst,
-                                      unsigned int* potMissesOutData, unsigned int **timeConst, unsigned int **timeData, int* error) {
+bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, double *avgOutConst, double *avgOutData, unsigned int *potMissesOutConst,
+                                      unsigned int *potMissesOutData, unsigned int **timeConst, unsigned int **timeData, int *error)
+{
     (void)hipDeviceReset();
     hipError_t error_id;
 
     unsigned int *h_indexConst = nullptr, *h_indexData = nullptr, *h_timeinfoConst = nullptr, *h_timeinfoData = nullptr, *h_a = nullptr,
-    *durationConst = nullptr, *durationData = nullptr, *d_indexConst = nullptr, *d_indexData = nullptr, *d_a = nullptr;
+                 *durationConst = nullptr, *durationData = nullptr, *d_indexConst = nullptr, *d_indexData = nullptr, *d_a = nullptr;
     bool *disturb = nullptr, *d_disturb = nullptr;
 
-    do {
+    do
+    {
         // Allocate Memory on Host
-        h_indexConst = (unsigned int *) malloc(sizeof(unsigned int) * LESS_SIZE);
-        if (h_indexConst == nullptr) {
+        h_indexConst = (unsigned int *)malloc(sizeof(unsigned int) * LESS_SIZE);
+        if (h_indexConst == nullptr)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: malloc h_indexConst Error\n");
             *error = 1;
             break;
         }
 
-        h_indexData = (unsigned int *) malloc(sizeof(unsigned int) * LESS_SIZE);
-        if (h_indexData == nullptr) {
+        h_indexData = (unsigned int *)malloc(sizeof(unsigned int) * LESS_SIZE);
+        if (h_indexData == nullptr)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: malloc h_indexData Error\n");
             *error = 1;
             break;
         }
 
-        h_timeinfoConst = (unsigned int *) malloc(sizeof(unsigned int) * LESS_SIZE);
-        if (h_timeinfoConst == nullptr) {
+        h_timeinfoConst = (unsigned int *)malloc(sizeof(unsigned int) * LESS_SIZE);
+        if (h_timeinfoConst == nullptr)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: malloc h_timeinfoConst Error\n");
             *error = 1;
             break;
         }
 
-        h_timeinfoData = (unsigned int *) malloc(sizeof(unsigned int) * LESS_SIZE);
-        if (h_timeinfoData == nullptr) {
+        h_timeinfoData = (unsigned int *)malloc(sizeof(unsigned int) * LESS_SIZE);
+        if (h_timeinfoData == nullptr)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: malloc h_timeinfoData Error\n");
             *error = 1;
             break;
         }
 
-        disturb = (bool *) malloc(sizeof(bool));
-        if (disturb == nullptr) {
+        disturb = (bool *)malloc(sizeof(bool));
+        if (disturb == nullptr)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: malloc disturb Error\n");
             *error = 1;
             break;
         }
 
-        h_a = (unsigned int *) malloc(sizeof(unsigned int) * (DataN));
-        if (h_a == nullptr) {
+        h_a = (unsigned int *)malloc(sizeof(unsigned int) * (DataN));
+        if (h_a == nullptr)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: malloc h_a Error\n");
             *error = 1;
             break;
         }
 
         // Allocate Memory on GPU
-        error_id = hipMalloc((void **) &durationConst, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != hipSuccess) {
+        error_id = hipMalloc((void **)&durationConst, sizeof(unsigned int) * LESS_SIZE);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc durationConst Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = hipMalloc((void **) &durationData, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != hipSuccess) {
+        error_id = hipMalloc((void **)&durationData, sizeof(unsigned int) * LESS_SIZE);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc durationData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = hipMalloc((void **) &d_indexConst, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != hipSuccess) {
+        error_id = hipMalloc((void **)&d_indexConst, sizeof(unsigned int) * LESS_SIZE);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_indexConst Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = hipMalloc((void **) &d_indexData, sizeof(unsigned int) * LESS_SIZE);
-        if (error_id != hipSuccess) {
+        error_id = hipMalloc((void **)&d_indexData, sizeof(unsigned int) * LESS_SIZE);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_indexData Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = hipMalloc((void **) &d_disturb, sizeof(bool));
-        if (error_id != hipSuccess) {
+        error_id = hipMalloc((void **)&d_disturb, sizeof(bool));
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
-        error_id = hipMalloc((void **) &d_a, sizeof(unsigned int) * (DataN));
-        if (error_id != hipSuccess) {
+        error_id = hipMalloc((void **)&d_a, sizeof(unsigned int) * (DataN));
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMalloc d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 2;
             break;
         }
 
         // Initialize p-chase array
-        for (int i = 0; i < DataN; i++) {
+        for (int i = 0; i < DataN; i++)
+        {
             h_a[i] = (i + 1) % DataN;
         }
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * DataN, hipMemcpyHostToDevice);
-        if (error_id != hipSuccess) {
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_a Error: %s\n", hipGetErrorString(error_id));
             *error = 3;
             break;
@@ -234,104 +306,126 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
 
         (void)hipDeviceSynchronize();
         error_id = hipGetLastError();
-        if (error_id != hipSuccess) {
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: Kernel launch/execution Error: %s\n", hipGetErrorString(error_id));
             *error = 5;
             break;
         }
 
         // Copy results from GPU to Host
-        error_id = hipMemcpy((void *) h_timeinfoConst, (void *) durationConst, sizeof(unsigned int) * LESS_SIZE,
-                              hipMemcpyDeviceToHost);
-        if (error_id != hipSuccess) {
+        error_id = hipMemcpy((void *)h_timeinfoConst, (void *)durationConst, sizeof(unsigned int) * LESS_SIZE,
+                             hipMemcpyDeviceToHost);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy durationConst Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = hipMemcpy((void *) h_timeinfoData, (void *) durationData, sizeof(unsigned int) * LESS_SIZE,
-                              hipMemcpyDeviceToHost);
-        if (error_id != hipSuccess) {
+        error_id = hipMemcpy((void *)h_timeinfoData, (void *)durationData, sizeof(unsigned int) * LESS_SIZE,
+                             hipMemcpyDeviceToHost);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy durationData Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = hipMemcpy((void *) h_indexConst, (void *) d_indexConst, sizeof(unsigned int) * LESS_SIZE,
-                              hipMemcpyDeviceToHost);
-        if (error_id != hipSuccess) {
+        error_id = hipMemcpy((void *)h_indexConst, (void *)d_indexConst, sizeof(unsigned int) * LESS_SIZE,
+                             hipMemcpyDeviceToHost);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_indexConst Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = hipMemcpy((void *) h_indexData, (void *) d_indexData, sizeof(unsigned int) * LESS_SIZE,
-                              hipMemcpyDeviceToHost);
-        if (error_id != hipSuccess) {
+        error_id = hipMemcpy((void *)h_indexData, (void *)d_indexData, sizeof(unsigned int) * LESS_SIZE,
+                             hipMemcpyDeviceToHost);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy d_indexData Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        error_id = hipMemcpy((void *) disturb, (void *) d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
-        if (error_id != hipSuccess) {
+        error_id = hipMemcpy((void *)disturb, (void *)d_disturb, sizeof(bool), hipMemcpyDeviceToHost);
+        if (error_id != hipSuccess)
+        {
             printf("[CHKCONSTSHAREL1DATA.CUH]: hipMemcpy disturb Error: %s\n", hipGetErrorString(error_id));
             *error = 6;
             break;
         }
 
-        createOutputFile((int) ConstN, LESS_SIZE, h_indexConst, h_timeinfoConst, avgOutConst, potMissesOutConst,"ShareConstDataConst_");
-        createOutputFile((int) DataN, LESS_SIZE, h_indexData, h_timeinfoData, avgOutData, potMissesOutData, "ShareConstDataData_");
-    } while(false);
+        createOutputFile((int)ConstN, LESS_SIZE, h_indexConst, h_timeinfoConst, avgOutConst, potMissesOutConst, "ShareConstDataConst_");
+        createOutputFile((int)DataN, LESS_SIZE, h_indexData, h_timeinfoData, avgOutData, potMissesOutData, "ShareConstDataData_");
+    } while (false);
 
     bool ret = false;
-    if (disturb != nullptr) {
+    if (disturb != nullptr)
+    {
         ret = *disturb;
         free(disturb);
     }
 
     // Free Memory on GPU
-    if (d_indexConst != nullptr) {
+    if (d_indexConst != nullptr)
+    {
         hipFree(d_indexConst);
     }
 
-    if (d_indexData != nullptr) {
+    if (d_indexData != nullptr)
+    {
         hipFree(d_indexData);
     }
 
-    if (durationConst != nullptr) {
+    if (durationConst != nullptr)
+    {
         hipFree(durationConst);
     }
 
-    if (durationData != nullptr) {
+    if (durationData != nullptr)
+    {
         hipFree(durationData);
     }
 
-    if (d_disturb != nullptr) {
+    if (d_disturb != nullptr)
+    {
         hipFree(d_disturb);
     }
 
     // Free Memory on Host
-    if (h_indexConst != nullptr) {
+    if (h_indexConst != nullptr)
+    {
         free(h_indexConst);
     }
 
-    if (h_indexData != nullptr) {
+    if (h_indexData != nullptr)
+    {
         free(h_indexData);
     }
 
-    if (h_timeinfoConst != nullptr) {
-        if (timeConst != nullptr) {
+    if (h_timeinfoConst != nullptr)
+    {
+        if (timeConst != nullptr)
+        {
             timeConst[0] = h_timeinfoConst;
-        } else {
+        }
+        else
+        {
             free(h_timeinfoConst);
         }
     }
 
-    if (h_timeinfoData != nullptr) {
-        if (timeData != nullptr) {
+    if (h_timeinfoData != nullptr)
+    {
+        if (timeData != nullptr)
+        {
             timeData[0] = h_timeinfoData;
-        } else {
+        }
+        else
+        {
             free(h_timeinfoData);
         }
     }
@@ -340,60 +434,66 @@ bool launchBenchmarkChkConstShareData(unsigned int ConstN, unsigned int DataN, d
     return ret;
 }
 
-#define FreeMeasureConstL1ResOnlyPtr()      \
-free(time);                                 \
-free(avgFlow);                              \
-free(potMissesFlow);                        \
-free(timeRefL1);                            \
-free(avgFlowRefL1);                         \
-free(potMissesFlowRefL1);                   \
-free(timeRefConst);                         \
-free(avgFlowRefConst);                      \
-free(potMissesFlowRefConst);                \
+#define FreeMeasureConstL1ResOnlyPtr() \
+    free(time);                        \
+    free(avgFlow);                     \
+    free(potMissesFlow);               \
+    free(timeRefL1);                   \
+    free(avgFlowRefL1);                \
+    free(potMissesFlowRefL1);          \
+    free(timeRefConst);                \
+    free(avgFlowRefConst);             \
+    free(potMissesFlowRefConst);
 
-#define FreeMeasureConstL1Resources()       \
-if (time[0] != nullptr) {                   \
-    free(time[0]);                          \
-}                                           \
-if (time[1] != nullptr) {                   \
-    free(time[1]);                          \
-}                                           \
-if (timeRefL1[0] != nullptr) {              \
-    free(timeRefL1[0]);                     \
-}                                           \
-if (timeRefConst[0] != nullptr) {           \
-    free(timeRefConst[0]);                  \
-}                                           \
-free(time);                                 \
-free(avgFlow);                              \
-free(potMissesFlow);                        \
-free(timeRefL1);                            \
-free(avgFlowRefL1);                         \
-free(potMissesFlowRefL1);                   \
-free(timeRefConst);                         \
-free(avgFlowRefConst);                      \
-free(potMissesFlowRefConst);                \
+#define FreeMeasureConstL1Resources() \
+    if (time[0] != nullptr)           \
+    {                                 \
+        free(time[0]);                \
+    }                                 \
+    if (time[1] != nullptr)           \
+    {                                 \
+        free(time[1]);                \
+    }                                 \
+    if (timeRefL1[0] != nullptr)      \
+    {                                 \
+        free(timeRefL1[0]);           \
+    }                                 \
+    if (timeRefConst[0] != nullptr)   \
+    {                                 \
+        free(timeRefConst[0]);        \
+    }                                 \
+    free(time);                       \
+    free(avgFlow);                    \
+    free(potMissesFlow);              \
+    free(timeRefL1);                  \
+    free(avgFlowRefL1);               \
+    free(potMissesFlowRefL1);         \
+    free(timeRefConst);               \
+    free(avgFlowRefConst);            \
+    free(potMissesFlowRefConst);
 
-dTuple measure_ConstShareData(unsigned int measuredSizeConstL1, unsigned int measuredSizeDataL1, unsigned int sub) {
-    unsigned int ConstSizeInInt = (measuredSizeConstL1-sub) >> 2; // / 4;
-    unsigned int L1DataSizeInInt = (measuredSizeDataL1-sub) >> 2; // / 4;
+dTuple measure_ConstShareData(unsigned int measuredSizeConstL1, unsigned int measuredSizeDataL1, unsigned int sub)
+{
+    unsigned int ConstSizeInInt = (measuredSizeConstL1 - sub) >> 2; // / 4;
+    unsigned int L1DataSizeInInt = (measuredSizeDataL1 - sub) >> 2; // / 4;
 
-    double* avgFlowRefConst = (double*) malloc(sizeof(double));
-    unsigned int *potMissesFlowRefConst = (unsigned int*) malloc(sizeof(unsigned int));
-    unsigned int** timeRefConst = (unsigned int**) malloc(sizeof(unsigned int*));
+    double *avgFlowRefConst = (double *)malloc(sizeof(double));
+    unsigned int *potMissesFlowRefConst = (unsigned int *)malloc(sizeof(unsigned int));
+    unsigned int **timeRefConst = (unsigned int **)malloc(sizeof(unsigned int *));
 
-    double* avgFlowRefL1 = (double*) malloc(sizeof(double));
-    unsigned int *potMissesFlowRefL1 = (unsigned int*) malloc(sizeof(unsigned int));
-    unsigned int** timeRefL1 = (unsigned int**) malloc(sizeof(unsigned int*));
+    double *avgFlowRefL1 = (double *)malloc(sizeof(double));
+    unsigned int *potMissesFlowRefL1 = (unsigned int *)malloc(sizeof(unsigned int));
+    unsigned int **timeRefL1 = (unsigned int **)malloc(sizeof(unsigned int *));
 
-    double* avgFlow = (double*) malloc(sizeof(double)  * 2);
-    unsigned int *potMissesFlow = (unsigned int*) malloc(sizeof(unsigned int) * 2);
-    unsigned int** time = (unsigned int**) malloc(sizeof(unsigned int*) * 2);
+    double *avgFlow = (double *)malloc(sizeof(double) * 2);
+    unsigned int *potMissesFlow = (unsigned int *)malloc(sizeof(unsigned int) * 2);
+    unsigned int **time = (unsigned int **)malloc(sizeof(unsigned int *) * 2);
     if (avgFlowRefConst == nullptr || potMissesFlowRefConst == nullptr || timeRefConst == nullptr ||
-        avgFlowRefL1 == nullptr ||potMissesFlowRefL1 == nullptr || timeRefL1 == nullptr ||
-        avgFlow == nullptr || potMissesFlow == nullptr || time == nullptr) {
+        avgFlowRefL1 == nullptr || potMissesFlowRefL1 == nullptr || timeRefL1 == nullptr ||
+        avgFlow == nullptr || potMissesFlow == nullptr || time == nullptr)
+    {
         FreeMeasureConstL1ResOnlyPtr()
-        printErrorCodeInformation(1);
+            printErrorCodeInformation(1);
         exit(1);
     }
 
@@ -401,12 +501,14 @@ dTuple measure_ConstShareData(unsigned int measuredSizeConstL1, unsigned int mea
 
     bool dist = true;
     int n = 5;
-    while (dist && n > 0) {
+    while (dist && n > 0)
+    {
         int error = 0;
-        dist = launchConstBenchmarkReferenceValue((int) ConstSizeInInt, avgFlowRefConst, potMissesFlowRefConst, timeRefConst, &error);
-        if (error != 0) {
+        dist = launchConstBenchmarkReferenceValue((int)ConstSizeInInt, avgFlowRefConst, potMissesFlowRefConst, timeRefConst, &error);
+        if (error != 0)
+        {
             FreeMeasureConstL1Resources()
-            printErrorCodeInformation(error);
+                printErrorCodeInformation(error);
             exit(error);
         }
         --n;
@@ -414,12 +516,14 @@ dTuple measure_ConstShareData(unsigned int measuredSizeConstL1, unsigned int mea
 
     dist = true;
     n = 5;
-    while (dist && n > 0) {
+    while (dist && n > 0)
+    {
         int error = 0;
-        dist = launchL1DataBenchmarkReferenceValue((int) L1DataSizeInInt, 1, avgFlowRefL1, potMissesFlowRefL1, timeRefL1, &error);
-        if (error != 0) {
+        dist = launchL1DataBenchmarkReferenceValue((int)L1DataSizeInInt, 1, avgFlowRefL1, potMissesFlowRefL1, timeRefL1, &error);
+        if (error != 0)
+        {
             FreeMeasureConstL1Resources()
-            printErrorCodeInformation(error);
+                printErrorCodeInformation(error);
             exit(error);
         }
         --n;
@@ -427,13 +531,15 @@ dTuple measure_ConstShareData(unsigned int measuredSizeConstL1, unsigned int mea
 
     dist = true;
     n = 5;
-    while(dist && n > 0) {
+    while (dist && n > 0)
+    {
         int error = 0;
         dist = launchBenchmarkChkConstShareData(ConstSizeInInt, L1DataSizeInInt, &avgFlow[0], &avgFlow[1], &potMissesFlow[0],
-                                         &potMissesFlow[1], &time[0], &time[1], &error);
-        if (error != 0) {
+                                                &potMissesFlow[1], &time[0], &time[1], &error);
+        if (error != 0)
+        {
             FreeMeasureConstL1Resources()
-            printErrorCodeInformation(error);
+                printErrorCodeInformation(error);
             exit(error);
         }
         --n;
@@ -447,15 +553,15 @@ dTuple measure_ConstShareData(unsigned int measuredSizeConstL1, unsigned int mea
 
     fprintf(out, "Measured L1 Data Avg While Shared With Const:  %f\n", avgFlow[1]);
     fprintf(out, "Measured L1 Data Pot Misses While Shared With Const:  %u\n", potMissesFlow[1]);
-#endif //IsDebug
+#endif // IsDebug
 
     dTuple result;
-    result.first = (double) potMissesFlow[0]; //Constant check over measured misses
+    result.first = (double)potMissesFlow[0]; // Constant check over measured misses
     result.second = std::abs(avgFlow[1] - avgFlowRefL1[0]);
 
     FreeMeasureConstL1Resources()
 
-    return result;
+        return result;
 }
 
-#endif //CUDATEST_CONSTSHAREDATA
+#endif // CUDATEST_CONSTSHAREDATA

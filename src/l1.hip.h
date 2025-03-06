@@ -346,8 +346,8 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
 #ifdef IS_AMD
     uint32_t v_smem_ptr;
     asm volatile(
-        "v_mov_b32 %0, 0\n\t" // Initialize shared memory pointer in VGPR
-        : "=v"(v_smem_ptr)    // Output: VGPR for LDS pointer
+        "v_mov_b32 %0, 0\n\t" 
+        : "=v"(v_smem_ptr)    
     );
 #else
     asm volatile(

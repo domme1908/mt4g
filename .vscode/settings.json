@@ -27,6 +27,7 @@
         "queue": "cpp",
         "random": "cpp",
         "stack": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "compare": "cpp"
     }
 }

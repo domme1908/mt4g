@@ -101,14 +101,29 @@ __global__ void l2_segment_size(unsigned int *my_array, int array_length, unsign
     for (int k = tid; k < array_length; k += BLOCK_SIZE)
     {
         ptr = my_array + j;
-        asm volatile("ld.global.cg.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
+#ifdef IS_AMD
+        asm volatile(
+            "global_load_dword %0, %1, off\n\t"
+            : "=v"(j)
+            : "v"(ptr));
+
+#else
+        asm volatile("ld.global.cg.u32 %0, [%1];\n\t" : "=r"(j) : "r"(ptr) : "memory");
+#endif
         // j = my_array[j];
     }
 
     // Second round
+#ifdef IS_AMD
+    uint64_t mem_ptr64;
+    asm volatile("s_mov_b64 %0, %1\n\t"
+                 : "=s"(mem_ptr64)
+                 : "s"(last));
+#else
     asm volatile(" .reg .u64 mem_ptr64;\n\t"
                  " cvta.to.global.u64 mem_ptr64, %0;\n\t" ::"r"(last));
 
+#endif
     asm volatile(
         "s_memtime s[0:1]\n\t"
         "s_mov_b32 %0, s0\n\t"
