@@ -115,7 +115,7 @@ endif()
 message(STATUS "Current GPU name: ${GPU_NAME}")
 
 # Print the HIPCC_FLAGS variable to verify it includes the device name
-message(STATUS "HIPCC_FLAGS: ${HIPCC_FLAGS}")
+set(HIPCC_FLAGS "${HIPCC_FLAGS} -g -O0 -mllvm -amdgpu-spill-cfi-saved-regs")
 
 # Top-level build just includes subdirectories.
 add_subdirectory(src)

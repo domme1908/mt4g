@@ -223,7 +223,7 @@ void getBoundaries (bool (*benchmark)(int, int, double*, unsigned int*, unsigned
     // Doubling the size in each step
     for (int N = absoluteLowerBound; N < absoluteUpperBound; N = N << 1) {
         int shiftToLeft = (searchWindowSize + (2-1)) / 2;
-
+        
         // Not only one size but a small number of sizes surrounding N
         double* logAvg = (double*) malloc(sizeof(double) * searchWindowSize);
         for (int i = 0; i < searchWindowSize; i++) {

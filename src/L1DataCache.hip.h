@@ -15,7 +15,10 @@ CacheResults executeL1DataCacheChecks(){
 #ifdef IsDebug
     fprintf(out, "\n\nMeasure L1 DataCache Size\n\n");
 #endif //IsDebug
+    printf("Starting measurment...\n");
     CacheSizeResult L1SizeInBytes = measure_L1();
+    printf("Measurment returned...\n");
+
     printf("\n\nMeasure L1 DataCache cache line size\n");
 #ifdef IsDebug
     fprintf(out, "\n\nMeasure L1 DataCache cache line size\n\n");

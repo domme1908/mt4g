@@ -30,6 +30,8 @@ __global__ void l1_differ(unsigned int *my_array, unsigned int *durationL1, unsi
     {
         ptr = my_array + j;
 #ifdef IS_AMD
+
+        printf("HERE");
         asm volatile(
             "global_load_dword %0, %1, off"
             : "=v"(j)

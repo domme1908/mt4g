@@ -535,6 +535,7 @@ int main(int argc, char *argv[]){
     // Use first device (in case of multi-GPU machine)
     int numberGPUs;
     hipGetDeviceCount(&numberGPUs);
+    printf("gpus found: %d\n", numberGPUs);
     if (deviceID >= numberGPUs) {
         printf("Specified device ID %d >= %d(number of installed GPUs) - will use default GPU 0!\n"
                "Use \'nvidia-smi\' to see the ID of the desired GPU device!\n", deviceID, numberGPUs);
@@ -550,7 +551,7 @@ int main(int argc, char *argv[]){
     hipMemGetInfo(&freeMem, &totalMem);
 
     CudaDeviceInfo cudaInfo = getDeviceProperties(cudaCoreQueryPath, coreSwitch, deviceID);
-
+    
     CacheResults L1_results;
     CacheResults L2_results;
     CacheResults textureResults;

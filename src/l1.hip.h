@@ -9,7 +9,7 @@
 #include "GPU_resources.hip.h"
 #include "utils.h"
 
-__global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed);
+__global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed, bool *kernelStarted);
 
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error);
 char unitsByteLocal[4][4] = {"B", "KiB", "MiB", "GiB"};
@@ -61,8 +61,8 @@ CacheSizeResult measure_L1()
     int cp = -1;
     int begin = bounds[0] - widenBounds;
     int end = bounds[1] + widenBounds;
-    int stride = 8;
-    int arrayIncrease = 8;
+    int stride = 1;
+    int arrayIncrease = 1;
 
     while (cp == -1 && begin >= absoluteLowerBoundary / sizeof(int) - widenBounds && end <= absoluteUpperBoundary / sizeof(int) + widenBounds)
     {
@@ -97,7 +97,7 @@ CacheSizeResult measure_L1()
 
 bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *potMissesOut, unsigned int **time, int *error)
 {
-    // hipDeviceReset();
+    hipDeviceReset();
     hipError_t error_id;
     unsigned int *h_a = nullptr, *h_index = nullptr, *h_timeinfo = nullptr,
                  *d_a = nullptr, *duration = nullptr, *d_index = nullptr, *lines = nullptr;
@@ -189,11 +189,31 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         fisher_yates_shuffle(lines, line_count);
         for (int i = 0; i < line_count - 1; i++)
         {
-            int current_line = lines[i];
-            int next_line = lines[i + 1];
-            h_a[current_line * stride] = next_line * stride;
+            int current_idx = lines[i] * stride;
+            int next_idx = lines[i + 1] * stride;
+            if (current_idx >= N || next_idx >= N)
+            {
+                printf("Skipping invalid pointer: current=%d, next=%d (N=%d)\n", current_idx, next_idx, N);
+                continue;
+            }
+
+            h_a[current_idx] = next_idx;
         }
-        h_a[lines[line_count - 1] * stride] = lines[0] * stride;
+
+        int last = lines[line_count - 1] * stride;
+        int first = lines[0] * stride;
+        if (last < N && first < N)
+            h_a[last] = first;
+        for (int i = 0; i < line_count; ++i)
+        {
+            int idx = lines[i] * stride;
+            if (h_a[idx] >= N)
+            {
+                printf("Invalid pointer value at h_a[%d] = %u\n", i, h_a[idx]);
+                *error = 4;
+                return false;
+            }
+        }
 
         // Copy array from Host to GPU
         error_id = hipMemcpy(d_a, h_a, sizeof(unsigned int) * N, hipMemcpyHostToDevice);
@@ -204,14 +224,48 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
             break;
         }
         hipDeviceSynchronize();
-
         // Launch Kernel function
         // Single thread i think
         dim3 Db = dim3(1);
         dim3 Dg = dim3(1, 1, 1);
-        hipLaunchKernelGGL(l1_size, Dg, Db, 0, 0, d_a, N, duration, d_index, d_disturb);
+        printf("N: %d\n", N);
+        unsigned int j = 0;
+        for (int i = 0; i < N; i++)
+        {
+            j = h_a[j]; // next pointer
+            if (j >= N)
+            {
+                printf("Host found an OOB pointer at step %d: j=%u\n", i, j);
+                exit(1);
+            }
+        }
+        // If we haven't returned, the entire ring is valid for all N steps
+        printf("Host ring chase for %d steps is valid.\n", N);
+        bool h_kernelStarted = false;
+        bool *d_kernelStarted = nullptr;
+        hipMalloc(&d_kernelStarted, sizeof(bool));
+        hipMemset(d_kernelStarted, 0, sizeof(bool));
+        hipLaunchKernelGGL(l1_size, Dg, Db, 0, 0, d_a, N, duration, d_index, d_disturb, d_kernelStarted);
+        for (int i = 0; i < MEASURE_SIZE; i++){
+            printf("Value of s_tvalue[%d]: %u\n", i, s_tvalue[i]);
+        }
+        hipError_t err = hipPeekAtLastError();
+        if (err != hipSuccess)
+        {
+            printf("Launch failed: %s\n", hipGetErrorString(err));
+        }
 
         hipDeviceSynchronize();
+
+        hipMemcpy(&h_kernelStarted, d_kernelStarted, sizeof(bool), hipMemcpyDeviceToHost);
+        if (!h_kernelStarted)
+        {
+            printf("[!] Kernel never reached first instruction!\n");
+        }
+        else
+        {
+            printf("[✓] Kernel started executing.\n");
+        }
 
         error_id = hipGetLastError();
         if (error_id != hipSuccess)
@@ -248,10 +302,8 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
         }
 
         hipDeviceSynchronize();
-
         if (!*disturb)
             createOutputFile(N, MEASURE_SIZE, h_index, h_timeinfo, avgOut, potMissesOut, "L1_");
-
     } while (false);
 
     // Free Memory on GPU
@@ -313,8 +365,15 @@ bool launchL1KernelBenchmark(int N, int stride, double *avgOut, unsigned int *po
     return ret;
 }
 
-__global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed)
+__global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *duration, unsigned int *index, bool *isDisturbed, bool *kernelStarted)
 {
+    __shared__ unsigned int s_index[MEASURE_SIZE];
+    __shared__ unsigned int s_tvalue[MEASURE_SIZE];
+    
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        *kernelStarted = true;
+    }
 
     unsigned int start_time, end_time;
     bool dist = false;
@@ -331,24 +390,28 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
     for (int k = 0; k < array_length; k++)
     {
         ptr = my_array + j;
+        if (j >= array_length)
+            return;
+
 #ifdef IS_AMD
+        uint64_t p64 = reinterpret_cast<uint64_t>(ptr);
         asm volatile(
-            "global_load_dword %0, %1, off\n\t"
+            "flat_load_dword %0, %1\n\t"
             : "=v"(j)
-            : "v"(ptr));
+            : "s"(p64)
+            : "memory");
+    
 #else
         asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(j) : "r"(ptr) : "memory");
 #endif
-        // j = my_array[j];
     }
 
-    // Second round
+// Second round
 #ifdef IS_AMD
     uint32_t v_smem_ptr;
     asm volatile(
-        "v_mov_b32 %0, 0\n\t" 
-        : "=v"(v_smem_ptr)    
-    );
+        "v_mov_b32 %0, 0\n\t"
+        : "=v"(v_smem_ptr));
 #else
     asm volatile(
         // Declare register
@@ -360,28 +423,16 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
     {
         ptr = my_array + j;
 #ifdef IS_AMD
-        uint32_t start_time_lo, start_time_hi;
         uint64_t start_time, end_time;
-        uint32_t j;          
+        uint32_t j;
         uint32_t v_smem_ptr;
 
-        // Read GPU clock into two 32-bit registers
         asm volatile("s_memtime %0" : "=r"(start_time));
-
-        // Load from global memory (flat memory addressing)
         asm volatile("flat_load_dword %0, %1\n\t" : "=v"(j) : "v"(ptr));
-
-        // Initialize VGPR LDS pointer (INSTEAD of SGPR)
         asm volatile("v_mov_b32 %0, 0\n\t" : "=v"(v_smem_ptr));
-
-        // Store to LDS (shared memory)
         asm volatile("ds_write_b32 %0, %1\n\t" : : "v"(v_smem_ptr), "v"(j));
-
-        // Read GPU clock again
         asm volatile("s_memtime %0" : "=r"(end_time));
-
-        // Increment shared memory pointer
-        asm volatile("v_add_u32 %0, %0, 4\n\t" : "+v"(v_smem_ptr)); 
+        asm volatile("v_add_u32 %0, %0, 4\n\t" : "+v"(v_smem_ptr));
 #else
         asm volatile(
             // save GPU Clock into start_time var
@@ -395,7 +446,7 @@ __global__ void l1_size(unsigned int *my_array, int array_length, unsigned int *
             // increment shared memory pointer by 4 bytes
             "add.u64 smem_ptr64, smem_ptr64, 4;" : "=r"(start_time), "=r"(j), "=r"(end_time) : "r"(ptr) : "memory");
 #endif
-        s_tvalue[k] = end_time - start_time;
+        s_tvalue[k] = 0;
     }
 
     for (int k = 0; k < MEASURE_SIZE; k++)
